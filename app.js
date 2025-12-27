@@ -552,6 +552,3 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-}
-}
-}
