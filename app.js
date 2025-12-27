@@ -196,7 +196,7 @@ async function handleApplyDevices() {
 function setupRealtimeChannel() {
     state.channel = supabaseClient.channel(`room-${state.roomCode}`, {
         config: {
-            broadcast: { self: true },
+            broadcast: { self: false },
             presence: { key: state.userName }
         }
     });
@@ -208,6 +208,12 @@ function setupRealtimeChannel() {
 
         if (!state.peerConnection) {
             await createPeerConnection();
+        }
+
+        // Only accept offers when stable to avoid glare
+        if (state.peerConnection.signalingState !== 'stable') {
+            console.warn('Ignore offer: PC not stable');
+            return;
         }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -227,9 +233,15 @@ function setupRealtimeChannel() {
         console.log('Received answer');
         const answer = payload.payload.answer;
 
-        if (state.peerConnection) {
-            await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        if (!state.peerConnection) return;
+
+        // Only apply answer when we have a local offer
+        if (state.peerConnection.signalingState !== 'have-local-offer') {
+            console.warn('Ignore answer: no local offer');
+            return;
         }
+
+        await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
     });
 
     // Listen for ICE candidates
