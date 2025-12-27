@@ -340,8 +340,15 @@ function setupRealtimeChannel() {
             await createPeerConnection();
         }
 
-        // Only accept offers when stable to avoid glare
-        if (state.peerConnection.signalingState !== 'stable') { if (!state.isPolite) { console.warn('Ignore offer: PC not stable (impolite)'); return; } await state.peerConnection.setLocalDescription({ type: 'rollback' }); }
+        // Glare handling: always rollback then accept incoming offer
+        if (state.peerConnection.signalingState !== 'stable') {
+            console.warn('Glare detected: rolling back to accept incoming offer', {
+                signalingState: state.peerConnection.signalingState,
+                isInitiator: state.isInitiator,
+                isPolite: state.isPolite
+            });
+            await state.peerConnection.setLocalDescription({ type: 'rollback' });
+        }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
