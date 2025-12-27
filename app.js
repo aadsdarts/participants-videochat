@@ -385,28 +385,28 @@ flushPendingIceCandidates();
     });
 
     // Also support spectator-specific answers
-    state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-        console.log('Received spectator answer');
-        const answer = payload.payload.answer;
+        state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
+            console.log('Received spectator answer');
+            const answer = payload.payload.answer;
 
-        if (!state.peerConnection) return;
+            if (!state.peerConnection) return;
 
-        if (state.receivedAnswer) {
-            console.warn('Ignore duplicate spectator answer');
-            return;
-        }
+            if (state.receivedAnswer) {
+                console.warn('Ignore duplicate spectator answer');
+                return;
+            }
 
-        if (state.peerConnection.signalingState !== 'have-local-offer') {
-            console.warn('Ignore spectator answer: PC not in have-local-offer');
-            return;
-        }
+            if (state.peerConnection.signalingState !== 'have-local-offer') {
+                console.warn('Ignore spectator answer: PC not in have-local-offer');
+                return;
+            }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
         state.remoteDescriptionSet = true;
-flushPendingIceCandidates();
+        flushPendingIceCandidates();
         state.receivedAnswer = true;
-    });
+        });
 
     // Listen for ICE candidates
     state.channel.on('broadcast', { event: 'ice-candidate' }, async (payload) => {
@@ -714,6 +714,10 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
+
+
 
 
 
