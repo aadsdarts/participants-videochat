@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -35,16 +35,14 @@
             <!-- Left side: Video -->
             <div class="video-section">
                 <div class="video-grid">
-                    <!-- Remote Video (larger) -->
-                    <div class="video-container remote-container">
-                            <video id="remoteVideo" autoplay playsinline></video>
-                            <button id="playPrompt" onclick="document.getElementById('remoteVideo').play(); this.style.display='none';">▶ Start Video</button>
+                    <!-- Remote video - large, centered -->
+                    <div id="remoteVideoContainer" class="video-container">
+                        <video id="remoteVideo" autoplay playsinline></video>
                         <span class="video-label">Participant</span>
                         <span id="connectionStatus" class="connection-status">Waiting...</span>
                     </div>
-
-                    <!-- Local Video (smaller, bottom-right) -->
-                    <div class="video-container local-container">
+                    <!-- Local video - small PiP corner -->
+                    <div id="localVideoContainer" class="video-container">
                         <video id="localVideo" autoplay muted playsinline></video>
                         <span class="video-label">You</span>
                     </div>
@@ -82,25 +80,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
-        <script>
-            // Ensure Supabase REST requests negotiate JSON
-            (function(){
-                const origFetch = window.fetch;
-                window.fetch = function(input, init){
-                    const url = typeof input === 'string' ? input : (input && input.url);
-                    init = init || {};
-                    const method = (init && init.method ? String(init.method).toUpperCase() : 'GET');
-                    if (url && typeof url === 'string' && url.includes('/rest/v1/') && url.includes((typeof SUPABASE_URL !== 'undefined' ? new URL(SUPABASE_URL).host : '.supabase.co'))){
-                        const hdrs = new Headers(init.headers || {});
-                        if (method === 'GET') {
-                            hdrs.set('Accept', 'application/json');
-                        }
-                        init.headers = hdrs;
-                    }
-                    return origFetch.call(this, input, init);
-                };
-            })();
-        </script>
     <script src="app.js"></script>
 </body>
 </html>
