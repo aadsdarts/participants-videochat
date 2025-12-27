@@ -341,15 +341,12 @@ function setupRealtimeChannel() {
         }
 
         // Only accept offers when stable to avoid glare
-        if (state.peerConnection.signalingState !== 'stable') {
-            console.warn('Ignore offer: PC not stable');
-            return;
-        }
+        if (state.peerConnection.signalingState !== 'stable') { if (!state.isPolite) { console.warn('Ignore offer: PC not stable (impolite)'); return; } await state.peerConnection.setLocalDescription({ type: 'rollback' }); }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
         // Now that remote description is set, flush any buffered ICE candidates
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
         const answer = await state.peerConnection.createAnswer();
         await state.peerConnection.setLocalDescription(answer);
 
@@ -381,7 +378,7 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -404,7 +401,7 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -415,10 +412,7 @@ function setupRealtimeChannel() {
         if (!candidate) return;
         // If PC isn't ready or remote description isn't set yet, buffer candidates
         const pc = state.peerConnection;
-        const hasRemote = pc && pc.remoteDescription && pc.remoteDescription.type;
-        if (!pc || !hasRemote) {
-            state.pendingIceCandidates.push(candidate);
-            return;
+        if (!pc || !state.remoteDescriptionSet) { state.pendingIceCandidates.push(candidate); return; }
         }
 
         try {
@@ -493,7 +487,7 @@ async function createOrJoinRoom() {
                 .select();
 
             if (insertError) throw insertError;
-            state.isInitiator = true;
+            state.isInitiator = true;\n            state.isPolite = false;\n            state.isPolite = false;
         } else if (room) {
             // Room exists: if inactive, reactivate and become initiator; otherwise join as responder
             if (!room.is_active) {
@@ -503,9 +497,9 @@ async function createOrJoinRoom() {
                     .eq('room_code', state.roomCode);
 
                 if (updateError) throw updateError;
-                state.isInitiator = true;
+                state.isInitiator = true;\n            state.isPolite = false;\n            state.isPolite = false;
             } else {
-                state.isInitiator = false;
+                state.isInitiator = false;\n            state.isPolite = true;\n            state.isPolite = true;
             }
         }
     } catch (error) {
@@ -515,7 +509,7 @@ async function createOrJoinRoom() {
 
 // Create peer connection
 async function createPeerConnection() {
-    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });
+    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });`n    state.remoteDescriptionSet = false;`n    state.pendingIceCandidates = [];`n    state.remoteDescriptionSet = false;`n    state.pendingIceCandidates = [];
 
     // Add local tracks
     state.localStream.getTracks().forEach(track => {
@@ -708,3 +702,4 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
