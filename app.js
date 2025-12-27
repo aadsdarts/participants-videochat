@@ -451,7 +451,7 @@ async function createOrJoinRoom() {
             .single();
 
         if (error && error.code === 'PGRST116') {
-            // Room doesn't exist, create it
+            // Room doesn't exist, create it and become initiator
             const { data, error: insertError } = await supabaseClient
                 .from('rooms')
                 .insert([{
@@ -463,8 +463,19 @@ async function createOrJoinRoom() {
 
             if (insertError) throw insertError;
             state.isInitiator = true;
-        } else {
-            state.isInitiator = false;
+        } else if (room) {
+            // Room exists: if inactive, reactivate and become initiator; otherwise join as responder
+            if (!room.is_active) {
+                const { error: updateError } = await supabaseClient
+                    .from('rooms')
+                    .update({ is_active: true })
+                    .eq('room_code', state.roomCode);
+
+                if (updateError) throw updateError;
+                state.isInitiator = true;
+            } else {
+                state.isInitiator = false;
+            }
         }
     } catch (error) {
         console.error('Error with room:', error);
