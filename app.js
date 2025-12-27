@@ -346,8 +346,8 @@ function setupRealtimeChannel() {
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
         // Now that remote description is set, flush any buffered ICE candidates
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;
+flushPendingIceCandidates();
         const answer = await state.peerConnection.createAnswer();
         await state.peerConnection.setLocalDescription(answer);
 
@@ -379,8 +379,8 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;
+flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -403,8 +403,8 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
-        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;
+flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -490,7 +490,9 @@ async function createOrJoinRoom() {
                 .select();
 
             if (insertError) throw insertError;
-            state.isInitiator = true;\n            state.isPolite = false;\n            state.isPolite = false;
+            state.isInitiator = true;
+            state.isPolite = false;
+            state.isPolite = false;
         } else if (room) {
             // Room exists: if inactive, reactivate and become initiator; otherwise join as responder
             if (!room.is_active) {
@@ -500,9 +502,13 @@ async function createOrJoinRoom() {
                     .eq('room_code', state.roomCode);
 
                 if (updateError) throw updateError;
-                state.isInitiator = true;\n            state.isPolite = false;\n            state.isPolite = false;
+                state.isInitiator = true;
+            state.isPolite = false;
+            state.isPolite = false;
             } else {
-                state.isInitiator = false;\n            state.isPolite = true;\n            state.isPolite = true;
+                state.isInitiator = false;
+            state.isPolite = true;
+            state.isPolite = true;
             }
         }
     } catch (error) {
@@ -710,6 +716,7 @@ otification show ${type}`;
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
