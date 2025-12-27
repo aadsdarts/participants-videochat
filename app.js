@@ -416,7 +416,6 @@ flushPendingIceCandidates();
         // If PC isn't ready or remote description isn't set yet, buffer candidates
         const pc = state.peerConnection;
         if (!pc || !state.remoteDescriptionSet) { state.pendingIceCandidates.push(candidate); return; }
-        }
 
         try {
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -709,8 +708,7 @@ function handleToggleVideo() {
 // Show notification
 function showNotification(message, type = 'info') {
     notification.textContent = message;
-    notification.className = 
-otification show ${type}`;
+    notification.className = `notification show ${type}`;
 
     setTimeout(() => {
         notification.classList.remove('show');
