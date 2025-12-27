@@ -1,6 +1,7 @@
-﻿// State Management
+// State Management
 let state = {
     roomCode: null,
+    userName: null,
     localStream: null,
     peerConnection: null,
     channel: null,
@@ -18,11 +19,11 @@ const remoteVideo = document.getElementById('remoteVideo');
 const setupModal = document.getElementById('setupModal');
 const joinBtn = document.getElementById('joinBtn');
 const shareBtn = document.getElementById('shareBtn');
-const reconnectBtn = document.getElementById('reconnectBtn');
 const endCallBtn = document.getElementById('endCallBtn');
 const roomStatus = document.getElementById('roomStatus');
 const notification = document.getElementById('notification');
 const connectionStatus = document.getElementById('connectionStatus');
+const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const cameraSelect = document.getElementById('cameraSelect');
 const micSelect = document.getElementById('micSelect');
@@ -33,7 +34,6 @@ const deviceControls = document.getElementById('deviceControls');
 document.addEventListener('DOMContentLoaded', () => {
     setupModal.style.display = 'flex';
     joinBtn.addEventListener('click', handleJoinRoom);
-    reconnectBtn.addEventListener('click', handleReconnect);
     shareBtn.addEventListener('click', handleShareSpectatorLink);
     endCallBtn.addEventListener('click', handleEndCall);
     applyDevicesBtn.addEventListener('click', handleApplyDevices);
@@ -83,37 +83,50 @@ function setupDividerDrag() {
     });
 }
 
+// Draggable local video overlay
 // Generate random room code
 function generateRoomCode() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Sanitize room code to 4 digits
-function sanitizeRoomCode(code) {
-    return (code || '')
-        .replace(/[^0-9]/g, '')
-        .slice(0, 4);
+    // Sanitize room code to 6 uppercase alphanumerics
+    function sanitizeRoomCode(code) {
+        return (code || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 6);
+    }
+
 // Handle room join
 async function handleJoinRoom() {
-    const rawCode = (roomCodeInput.value || '').trim();
-    const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
-    
-    // If user provided a code, validate format
-    if (rawCode && roomCode.length !== 4) {
-        showNotification('Invalid room code format. Use 4 digits.', 'error');
+    const name = nameInput.value.trim();
+        const rawCode = (roomCodeInput.value || '').trim();
+        const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
+
+    if (!name) {
+        showNotification('Please enter your name', 'error');
         return;
     }
 
+        // If user provided a code, validate format
+        if (rawCode && roomCode.length !== 6) {
+            showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
+            return;
+        }
+
+    state.userName = name;
+    state.roomCode = roomCode;
+
     try {
-        roomStatus.textContent = `Room: ${roomCode}`;
+        roomStatus.textContent = `Room: ${roomCode} | User: ${name}`;
         setupModal.style.display = 'none';
-        reconnectBtn.removeAttribute('hidden');
         shareBtn.removeAttribute('hidden');
         endCallBtn.removeAttribute('hidden');
         deviceControls.removeAttribute('hidden');
 
         // Initialize local stream
         await initializeLocalStream();
+        // Enable draggable local overlay
         await enumerateAndPopulateDevices();
 
         // Setup Supabase Realtime channel
@@ -246,7 +259,7 @@ function setupRealtimeChannel() {
     state.channel = supabaseClient.channel(`room-${state.roomCode}`, {
         config: {
             broadcast: { self: false },
-            presence: { key: `user-${Math.random().toString(36).substr(2, 9)}` }
+            presence: { key: state.userName }
         }
     });
 
@@ -299,6 +312,27 @@ function setupRealtimeChannel() {
         state.receivedAnswer = true;
     });
 
+    // Also support spectator-specific answers
+    state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
+        console.log('Received spectator answer');
+        const answer = payload.payload.answer;
+
+        if (!state.peerConnection) return;
+
+        if (state.receivedAnswer) {
+            console.warn('Ignore duplicate spectator answer');
+            return;
+        }
+
+        if (state.peerConnection.signalingState !== 'have-local-offer') {
+            console.warn('Ignore spectator answer: PC not in have-local-offer');
+            return;
+        }
+
+        await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        state.receivedAnswer = true;
+    });
+
     // Listen for ICE candidates
     state.channel.on('broadcast', { event: 'ice-candidate' }, async (payload) => {
         const candidate = payload.payload.candidate;
@@ -315,16 +349,27 @@ function setupRealtimeChannel() {
     // Listen for presence changes
     state.channel.on('presence', { event: 'sync' }, () => {
         const presenceState = state.channel.presenceState();
-        const remoteUsers = Object.keys(presenceState);
-        
-        // Only initiator sends offer, once (when at least 2 users including self)
-        if (state.isInitiator && remoteUsers.length > 1 && !state.peerConnection && state.localStream) {
+        const remoteUsers = Object.keys(presenceState).filter(key => key !== state.userName);
+
+        // Only initiator sends offer, once
+        if (state.isInitiator && remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
+            createOffer();
+        }
+    });
 
     state.channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
             console.log('Subscribed to room channel');
             // Announce presence
-            await state.channel.track({ online: true });
+            state.channel.track({ user: state.userName });
+            // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
+            if (state.isInitiator && state.localStream && !state.peerConnection) {
+                setTimeout(() => {
+                    if (state.isInitiator && state.localStream && !state.peerConnection) {
+                        createOffer();
+                    }
+                }, 800);
+            }
         }
     });
 }
@@ -370,12 +415,18 @@ async function createPeerConnection() {
 
     // Handle remote tracks
     state.peerConnection.ontrack = (event) => {
-        console.log('Received remote track');
-        if (!state.remoteStream) {
-            state.remoteStream = new MediaStream();
-            remoteVideo.srcObject = state.remoteStream;
+        console.log('Received remote track:', event.track.kind, event.streams);
+        if (event.streams && event.streams[0]) {
+            remoteVideo.srcObject = event.streams[0];
+            remoteVideo.autoplay = true;
+            remoteVideo.playsInline = true;
+            remoteVideo.muted = false;
+            remoteVideo.play().catch(e => {
+                console.log('Autoplay blocked:', e);
+                const btn = document.getElementById('playPrompt');
+                if (btn) btn.style.display = 'block';
+            });
         }
-        state.remoteStream.addTrack(event.track);
     };
 
     // Handle ICE candidates
@@ -399,6 +450,10 @@ async function createPeerConnection() {
         console.log('ICE connection state:', state.peerConnection.iceConnectionState);
         updateConnectionStatus();
     };
+
+    state.peerConnection.onsignalingstatechange = () => {
+        console.log('Signaling state:', state.peerConnection.signalingState);
+    };
 }
 
 // Create offer
@@ -418,40 +473,6 @@ async function createOffer() {
         showNotification('Waiting for other participant to accept...', 'success');
     } catch (error) {
         console.error('Error creating offer:', error);
-    }
-}
-
-// Handle reconnect
-async function handleReconnect() {
-    try {
-        showNotification('Reconnecting...', 'info');
-
-        // Close existing peer connection
-        if (state.peerConnection) {
-            state.peerConnection.close();
-            state.peerConnection = null;
-        }
-
-        // Clear remote video
-        if (state.remoteStream) {
-            state.remoteStream.getTracks().forEach(t => t.stop());
-            state.remoteStream = null;
-        }
-        remoteVideo.srcObject = null;
-
-        // Reset state flags
-        state.receivedAnswer = false;
-
-        // Recreate connection if we're the initiator
-        if (state.isInitiator) {
-            await createOffer();
-            showNotification('Reconnection initiated', 'success');
-        } else {
-            showNotification('Waiting for initiator to reconnect...', 'info');
-        }
-    } catch (error) {
-        console.error('Error reconnecting:', error);
-        showNotification('Reconnection failed: ' + error.message, 'error');
     }
 }
 
@@ -531,10 +552,10 @@ async function handleEndCall() {
     }
 
     setupModal.style.display = 'flex';
-    reconnectBtn.setAttribute('hidden', '');
     shareBtn.setAttribute('hidden', '');
     endCallBtn.setAttribute('hidden', '');
     roomStatus.textContent = 'Initializing...';
+    nameInput.value = '';
     roomCodeInput.value = '';
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
@@ -551,4 +572,3 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
-
