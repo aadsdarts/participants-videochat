@@ -1,4 +1,4 @@
-// Supabase Configuration
+﻿// Supabase Configuration
 const SUPABASE_URL = 'https://ciuuivaqtpqfiaefspxh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpdXVpdmFxdHBxZmlhZWZzcHhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MDU0MjEsImV4cCI6MjA4MjM4MTQyMX0.0pK-vYOAvDjsUV_YKKXcYcBhZ3shvG4JDLT0xQfJHU8';
 
@@ -9,6 +9,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+            Accept: 'application/json'
         }
     }
 });
