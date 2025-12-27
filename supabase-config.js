@@ -14,12 +14,30 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 });
 
-// WebRTC Configuration
+// WebRTC Configuration (STUN + optional TURN via URL/localStorage)
 const RTCConfig = {
     iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' }
-    ]
+        { urls: ['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302','stun:stun3.l.google.com:19302'] }
+    ],
+    iceTransportPolicy: 'all'
 };
+
+// Allow injecting TURN with query params or localStorage
+try {
+    const qs = new URLSearchParams(window.location.search);
+    const stored = JSON.parse(localStorage.getItem('turnConfig') || '{}');
+    const turnUrlsParam = qs.get('turnUrls') || stored.turnUrls;
+    const turnUser = qs.get('turnUser') || stored.turnUser;
+    const turnPass = qs.get('turnPass') || stored.turnPass;
+    const forceRelay = qs.get('forceRelay') || stored.forceRelay;
+
+    if (turnUrlsParam && turnUser && turnPass) {
+        const urls = String(turnUrlsParam).split(/[,|\s]+/).filter(Boolean);
+        RTCConfig.iceServers.push({ urls, username: turnUser, credential: turnPass });
+    }
+    if (String(forceRelay).toLowerCase() === 'true') {
+        RTCConfig.iceTransportPolicy = 'relay';
+    }
+} catch (e) {
+    // ignore parsing errors
+}

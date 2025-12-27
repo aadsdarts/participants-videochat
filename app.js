@@ -13,6 +13,11 @@ let state = {
     receivedAnswer: false
 };
 
+// Debug logging gate
+const DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+const dlog = (...args) => { if (DEBUG) console.log(...args); };
+const dwarn = (...args) => { if (DEBUG) console.warn(...args); };
+
 // DOM Elements
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -41,110 +46,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Draggable local video overlay
 function initDraggableLocal() {
-    const el = document.querySelector('.local-container');
-    if (!el || !el.parentElement) return;
-
-    const container = el.parentElement; // video-grid
-    let dragging = false;
-    let startX = 0, startY = 0;
-    let startLeft = 0, startTop = 0;
-
-    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-
-    // Restore saved position
-    try {
         const saved = JSON.parse(localStorage.getItem('localVideoPos') || '{}');
         if (typeof saved.left === 'number' && typeof saved.top === 'number') {
-            el.style.left = `${saved.left}px`;
-            el.style.top = `${saved.top}px`;
-            el.style.right = 'auto';
-            el.style.bottom = 'auto';
-        }
-    } catch {}
+            // Draggable local video overlay
+            function initDraggableLocal() {
+                const el = document.querySelector('.local-container');
+                const container = document.querySelector('.video-grid');
+                if (!el || !container) return;
 
-    const onMouseDown = (e) => {
-        dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = el.getBoundingClientRect();
-        const parentRect = container.getBoundingClientRect();
-        startLeft = rect.left - parentRect.left;
-        startTop = rect.top - parentRect.top;
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    };
+                let dragging = false;
+                let startX = 0, startY = 0;
+                let startLeft = 0, startTop = 0;
 
-    const onMouseMove = (e) => {
-        if (!dragging) return;
-        const parentRect = container.getBoundingClientRect();
-        const newLeft = clamp(startLeft + (e.clientX - startX), 0, parentRect.width - el.offsetWidth);
-        const newTop = clamp(startTop + (e.clientY - startY), 0, parentRect.height - el.offsetHeight);
-        el.style.left = `${newLeft}px`;
-        el.style.top = `${newTop}px`;
-        el.style.right = 'auto';
-        el.style.bottom = 'auto';
-    };
+                const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-    const onMouseUp = () => {
-        dragging = false;
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-        const rect = el.getBoundingClientRect();
-        const parentRect = container.getBoundingClientRect();
-        localStorage.setItem('localVideoPos', JSON.stringify({
-            left: rect.left - parentRect.left,
-            top: rect.top - parentRect.top
-        }));
-    };
+                try {
+                    const saved = JSON.parse(localStorage.getItem('localVideoPos') || '{}');
+                    if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+                        el.style.left = `${saved.left}px`;
+                        el.style.top = `${saved.top}px`;
+                        el.style.right = 'auto';
+                        el.style.bottom = 'auto';
+                    }
+                } catch (e) {
+                    // ignore bad saved state
+                }
 
-    const onTouchStart = (e) => {
-        if (!e.touches || !e.touches[0]) return;
-        dragging = true;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        const rect = el.getBoundingClientRect();
-        const parentRect = container.getBoundingClientRect();
-        startLeft = rect.left - parentRect.left;
-        startTop = rect.top - parentRect.top;
-        document.addEventListener('touchmove', onTouchMove, { passive: false });
-        document.addEventListener('touchend', onTouchEnd);
-    };
+                const onMouseDown = (e) => {
+                    dragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = container.getBoundingClientRect();
+                    startLeft = rect.left - parentRect.left;
+                    startTop = rect.top - parentRect.top;
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                };
 
-    const onTouchMove = (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        const parentRect = container.getBoundingClientRect();
-        const newLeft = clamp(startLeft + (e.touches[0].clientX - startX), 0, parentRect.width - el.offsetWidth);
-        const newTop = clamp(startTop + (e.touches[0].clientY - startY), 0, parentRect.height - el.offsetHeight);
-        el.style.left = `${newLeft}px`;
-        el.style.top = `${newTop}px`;
-        el.style.right = 'auto';
-        el.style.bottom = 'auto';
-    };
+                const onMouseMove = (e) => {
+                    if (!dragging) return;
+                    const parentRect = container.getBoundingClientRect();
+                    const newLeft = clamp(startLeft + (e.clientX - startX), 0, parentRect.width - el.offsetWidth);
+                    const newTop = clamp(startTop + (e.clientY - startY), 0, parentRect.height - el.offsetHeight);
+                    el.style.left = `${newLeft}px`;
+                    el.style.top = `${newTop}px`;
+                    el.style.right = 'auto';
+                    el.style.bottom = 'auto';
+                };
 
-    const onTouchEnd = () => {
-        dragging = false;
-        document.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('touchend', onTouchEnd);
-        const rect = el.getBoundingClientRect();
-        const parentRect = container.getBoundingClientRect();
-        localStorage.setItem('localVideoPos', JSON.stringify({
-            left: rect.left - parentRect.left,
-            top: rect.top - parentRect.top
-        }));
-    };
+                const onMouseUp = () => {
+                    dragging = false;
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = container.getBoundingClientRect();
+                    localStorage.setItem('localVideoPos', JSON.stringify({
+                        left: rect.left - parentRect.left,
+                        top: rect.top - parentRect.top
+                    }));
+                };
 
-    el.addEventListener('mousedown', onMouseDown);
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-}
+                const onTouchStart = (e) => {
+                    if (!e.touches || !e.touches[0]) return;
+                    dragging = true;
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = container.getBoundingClientRect();
+                    startLeft = rect.left - parentRect.left;
+                    startTop = rect.top - parentRect.top;
+                    document.addEventListener('touchmove', onTouchMove, { passive: false });
+                    document.addEventListener('touchend', onTouchEnd);
+                };
 
-// Generate random room code
-function generateRoomCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+                const onTouchMove = (e) => {
+                    if (!dragging) return;
+                    e.preventDefault();
+                    const parentRect = container.getBoundingClientRect();
+                    const newLeft = clamp(startLeft + (e.touches[0].clientX - startX), 0, parentRect.width - el.offsetWidth);
+                    const newTop = clamp(startTop + (e.touches[0].clientY - startY), 0, parentRect.height - el.offsetHeight);
+                    el.style.left = `${newLeft}px`;
+                    el.style.top = `${newTop}px`;
+                    el.style.right = 'auto';
+                    el.style.bottom = 'auto';
+                };
 
-    // Sanitize room code to 6 uppercase alphanumerics
-    function sanitizeRoomCode(code) {
+                const onTouchEnd = () => {
+                    dragging = false;
+                    document.removeEventListener('touchmove', onTouchMove);
+                    document.removeEventListener('touchend', onTouchEnd);
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = container.getBoundingClientRect();
+                    localStorage.setItem('localVideoPos', JSON.stringify({
+                        left: rect.left - parentRect.left,
+                        top: rect.top - parentRect.top
+                    }));
+                };
+
+                el.addEventListener('mousedown', onMouseDown);
+                el.addEventListener('touchstart', onTouchStart, { passive: true });
+            }
         return (code || '')
             .toUpperCase()
             .replace(/[^A-Z0-9]/g, '')
@@ -154,19 +156,19 @@ function generateRoomCode() {
 // Handle room join
 async function handleJoinRoom() {
     const name = nameInput.value.trim();
-        const rawCode = (roomCodeInput.value || '').trim();
-        const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
+    const rawCode = (roomCodeInput.value || '').trim();
+    const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
 
     if (!name) {
         showNotification('Please enter your name', 'error');
         return;
     }
 
-        // If user provided a code, validate format
-        if (rawCode && roomCode.length !== 6) {
-            showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
-            return;
-        }
+    // If user provided a code, validate format
+    if (rawCode && roomCode.length !== 6) {
+        showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
+        return;
+    }
 
     state.userName = name;
     state.roomCode = roomCode;
@@ -320,7 +322,7 @@ function setupRealtimeChannel() {
 
     // Listen for SDP offers
     state.channel.on('broadcast', { event: 'offer' }, async (payload) => {
-        console.log('[SIGNALING] Received offer from participant');
+        dlog('[SIGNALING] Received offer from participant');
         const offer = payload.payload.offer;
 
         if (!state.peerConnection) {
@@ -329,7 +331,7 @@ function setupRealtimeChannel() {
 
         // Only accept offers when stable to avoid glare
         if (state.peerConnection.signalingState !== 'stable') {
-            console.warn('Ignore offer: PC not stable');
+              dwarn('Ignore offer: PC not stable');
             return;
         }
 
@@ -347,19 +349,19 @@ function setupRealtimeChannel() {
 
     // Listen for SDP answers
     state.channel.on('broadcast', { event: 'answer' }, async (payload) => {
-        console.log('[SIGNALING] Received answer from participant');
+        dlog('[SIGNALING] Received answer from participant');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
 
         // Only apply first valid answer when we have a local offer
         if (state.receivedAnswer) {
-            console.warn('Ignore duplicate answer');
+              dwarn('Ignore duplicate answer');
             return;
         }
 
         if (state.peerConnection.signalingState !== 'have-local-offer') {
-            console.warn('Ignore answer: PC not in have-local-offer');
+              dwarn('Ignore answer: PC not in have-local-offer');
             return;
         }
 
@@ -369,18 +371,18 @@ function setupRealtimeChannel() {
 
     // Also support spectator-specific answers
     state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-        console.log('[SIGNALING] Received spectator answer');
+        dlog('[SIGNALING] Received spectator answer');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
 
         if (state.receivedAnswer) {
-            console.warn('Ignore duplicate spectator answer');
+              dwarn('Ignore duplicate spectator answer');
             return;
         }
 
         if (state.peerConnection.signalingState !== 'have-local-offer') {
-            console.warn('Ignore spectator answer: PC not in have-local-offer');
+              dwarn('Ignore spectator answer: PC not in have-local-offer');      
             return;
         }
 
@@ -405,40 +407,29 @@ function setupRealtimeChannel() {
     state.channel.on('presence', { event: 'sync' }, () => {
         const presenceState = state.channel.presenceState();
         const remoteUsers = Object.keys(presenceState).filter(key => key !== state.userName);
-        console.log('[PRESENCE] Remote users detected:', remoteUsers.length, '| isInitiator:', state.isInitiator);
+          dlog('[PRESENCE] Remote users detected:', remoteUsers.length, '| isInitiator:', state.isInitiator);
 
         // Only initiator sends offer, once
         if (state.isInitiator && remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
-            console.log('[SIGNALING] Initiator creating offer...');
+              dlog('[SIGNALING] Initiator creating offer...');
             createOffer();
         }
     });
 
         state.channel.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-            console.log('Subscribed to room channel');
-            await state.channel.track({ user: state.userName });
+          if (status === 'SUBSCRIBED') {
+              dlog('Subscribed to room channel');
+              // Presence tracking does not need awaiting; avoid parse issues in some contexts
+              state.channel.track({ user: state.userName });
             setTimeout(() => {
                 const presenceState = state.channel.presenceState();
                 const allUsers = Object.keys(presenceState);
                 const leader = [...allUsers].sort()[0];
                 if (leader === state.userName && state.localStream && !state.peerConnection) {
-                    console.log('[SIGNALING] Leader on subscribe, creating offer...');
+                      dlog('[SIGNALING] Leader on subscribe, creating offer...');
                     createOffer();
                 }
             }, 800);
-        }
-    });
-            // Announce presence
-            await state.channel.track({ user: state.userName });
-            // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
-            if (state.isInitiator && state.localStream && !state.peerConnection) {
-                setTimeout(() => {
-                    if (state.isInitiator && state.localStream && !state.peerConnection) {
-                        createOffer();
-                    }
-                }, 800);
-            }
         }
     });
 }
@@ -474,8 +465,11 @@ async function createOrJoinRoom() {
 }
 
 // Create peer connection
-async function createPeerConnection() {
-    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });
+  async function createPeerConnection() {
+      state.peerConnection = new RTCPeerConnection({
+          iceServers: RTCConfig.iceServers,
+          iceTransportPolicy: RTCConfig.iceTransportPolicy || 'all'
+      });
 
     // Add local tracks
     state.localStream.getTracks().forEach(track => {
@@ -484,7 +478,7 @@ async function createPeerConnection() {
 
     // Handle remote tracks
     state.peerConnection.ontrack = (event) => {
-        console.log('Received remote track:', event.track.kind, event.streams);
+        dlog('Received remote track:', event.track.kind, event.streams);       
         if (event.streams && event.streams[0]) {
             remoteVideo.srcObject = event.streams[0];
             remoteVideo.autoplay = true;
@@ -511,17 +505,17 @@ async function createPeerConnection() {
 
     // Monitor connection state
     state.peerConnection.onconnectionstatechange = () => {
-        // console.log('Connection state:', state.peerConnection.connectionState);
+          // dlog('Connection state:', state.peerConnection.connectionState);    
         updateConnectionStatus();
     };
 
     state.peerConnection.oniceconnectionstatechange = () => {
-        // console.log('ICE connection state:', state.peerConnection.iceConnectionState);
+          // dlog('ICE connection state:', state.peerConnection.iceConnectionState);
         updateConnectionStatus();
     };
 
     state.peerConnection.onsignalingstatechange = () => {
-        // console.log('Signaling state:', state.peerConnection.signalingState);
+          // dlog('Signaling state:', state.peerConnection.signalingState);      
     };
 }
 
@@ -532,7 +526,7 @@ async function createOffer() {
         await createPeerConnection();
         const offer = await state.peerConnection.createOffer();
         await state.peerConnection.setLocalDescription(offer);
-        console.log('[SIGNALING] Offer created, sending to channel...');
+        dlog('[SIGNALING] Offer created, sending to channel...');
 
         state.channel.send({
             type: 'broadcast',
