@@ -9,7 +9,8 @@ let state = {
     remoteStream: null,
     spectatorToken: null,
     selectedVideoDeviceId: null,
-    selectedAudioDeviceId: null
+    selectedAudioDeviceId: null,
+    receivedAnswer: false
 };
 
 // DOM Elements
@@ -235,13 +236,19 @@ function setupRealtimeChannel() {
 
         if (!state.peerConnection) return;
 
-        // Only apply answer when we have a local offer
+        // Only apply first valid answer when we have a local offer
+        if (state.receivedAnswer) {
+            console.warn('Ignore duplicate answer');
+            return;
+        }
+
         if (state.peerConnection.signalingState !== 'have-local-offer') {
-            console.warn('Ignore answer: no local offer');
+            console.warn('Ignore answer: PC not in have-local-offer');
             return;
         }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        state.receivedAnswer = true;
     });
 
     // Listen for ICE candidates
@@ -262,7 +269,8 @@ function setupRealtimeChannel() {
         const presenceState = state.channel.presenceState();
         const remoteUsers = Object.keys(presenceState).filter(key => key !== state.userName);
 
-        if (remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
+        // Only initiator sends offer, once
+        if (state.isInitiator && remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
             createOffer();
         }
     });
@@ -351,6 +359,7 @@ async function createPeerConnection() {
 // Create offer
 async function createOffer() {
     try {
+        state.receivedAnswer = false;
         await createPeerConnection();
         const offer = await state.peerConnection.createOffer();
         await state.peerConnection.setLocalDescription(offer);
