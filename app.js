@@ -1,4 +1,4 @@
-// State Management
+﻿// State Management
 let state = {
     roomCode: null,
     localStream: null,
@@ -550,4 +550,8 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.classList.remove('show');
     }, 5000);
+}
+
+}
+}
 }
