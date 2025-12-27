@@ -94,6 +94,10 @@ video {
     transform: none;
 }
 
+.video-container video {
+    transform: none !important;
+}
+
 .video-label {
     position: absolute;
     top: 10px;
