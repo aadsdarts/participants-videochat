@@ -13,11 +13,6 @@ let state = {
     receivedAnswer: false
 };
 
-// Debug logging gate
-const DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
-const dlog = (...args) => { if (DEBUG) console.log(...args); };
-const dwarn = (...args) => { if (DEBUG) console.warn(...args); };
-
 // DOM Elements
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -45,108 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Draggable local video overlay
-function initDraggableLocal() {
-        const saved = JSON.parse(localStorage.getItem('localVideoPos') || '{}');
-        if (typeof saved.left === 'number' && typeof saved.top === 'number') {
-            // Draggable local video overlay
-            function initDraggableLocal() {
-                const el = document.querySelector('.local-container');
-                const container = document.querySelector('.video-grid');
-                if (!el || !container) return;
+// Generate random room code
+function generateRoomCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
-                let dragging = false;
-                let startX = 0, startY = 0;
-                let startLeft = 0, startTop = 0;
-
-                const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-
-                try {
-                    const saved = JSON.parse(localStorage.getItem('localVideoPos') || '{}');
-                    if (typeof saved.left === 'number' && typeof saved.top === 'number') {
-                        el.style.left = `${saved.left}px`;
-                        el.style.top = `${saved.top}px`;
-                        el.style.right = 'auto';
-                        el.style.bottom = 'auto';
-                    }
-                } catch (e) {
-                    // ignore bad saved state
-                }
-
-                const onMouseDown = (e) => {
-                    dragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    const rect = el.getBoundingClientRect();
-                    const parentRect = container.getBoundingClientRect();
-                    startLeft = rect.left - parentRect.left;
-                    startTop = rect.top - parentRect.top;
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                };
-
-                const onMouseMove = (e) => {
-                    if (!dragging) return;
-                    const parentRect = container.getBoundingClientRect();
-                    const newLeft = clamp(startLeft + (e.clientX - startX), 0, parentRect.width - el.offsetWidth);
-                    const newTop = clamp(startTop + (e.clientY - startY), 0, parentRect.height - el.offsetHeight);
-                    el.style.left = `${newLeft}px`;
-                    el.style.top = `${newTop}px`;
-                    el.style.right = 'auto';
-                    el.style.bottom = 'auto';
-                };
-
-                const onMouseUp = () => {
-                    dragging = false;
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    const rect = el.getBoundingClientRect();
-                    const parentRect = container.getBoundingClientRect();
-                    localStorage.setItem('localVideoPos', JSON.stringify({
-                        left: rect.left - parentRect.left,
-                        top: rect.top - parentRect.top
-                    }));
-                };
-
-                const onTouchStart = (e) => {
-                    if (!e.touches || !e.touches[0]) return;
-                    dragging = true;
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
-                    const rect = el.getBoundingClientRect();
-                    const parentRect = container.getBoundingClientRect();
-                    startLeft = rect.left - parentRect.left;
-                    startTop = rect.top - parentRect.top;
-                    document.addEventListener('touchmove', onTouchMove, { passive: false });
-                    document.addEventListener('touchend', onTouchEnd);
-                };
-
-                const onTouchMove = (e) => {
-                    if (!dragging) return;
-                    e.preventDefault();
-                    const parentRect = container.getBoundingClientRect();
-                    const newLeft = clamp(startLeft + (e.touches[0].clientX - startX), 0, parentRect.width - el.offsetWidth);
-                    const newTop = clamp(startTop + (e.touches[0].clientY - startY), 0, parentRect.height - el.offsetHeight);
-                    el.style.left = `${newLeft}px`;
-                    el.style.top = `${newTop}px`;
-                    el.style.right = 'auto';
-                    el.style.bottom = 'auto';
-                };
-
-                const onTouchEnd = () => {
-                    dragging = false;
-                    document.removeEventListener('touchmove', onTouchMove);
-                    document.removeEventListener('touchend', onTouchEnd);
-                    const rect = el.getBoundingClientRect();
-                    const parentRect = container.getBoundingClientRect();
-                    localStorage.setItem('localVideoPos', JSON.stringify({
-                        left: rect.left - parentRect.left,
-                        top: rect.top - parentRect.top
-                    }));
-                };
-
-                el.addEventListener('mousedown', onMouseDown);
-                el.addEventListener('touchstart', onTouchStart, { passive: true });
-            }
+    // Sanitize room code to 6 uppercase alphanumerics
+    function sanitizeRoomCode(code) {
         return (code || '')
             .toUpperCase()
             .replace(/[^A-Z0-9]/g, '')
@@ -156,19 +56,19 @@ function initDraggableLocal() {
 // Handle room join
 async function handleJoinRoom() {
     const name = nameInput.value.trim();
-    const rawCode = (roomCodeInput.value || '').trim();
-    const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
+        const rawCode = (roomCodeInput.value || '').trim();
+        const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
 
     if (!name) {
         showNotification('Please enter your name', 'error');
         return;
     }
 
-    // If user provided a code, validate format
-    if (rawCode && roomCode.length !== 6) {
-        showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
-        return;
-    }
+        // If user provided a code, validate format
+        if (rawCode && roomCode.length !== 6) {
+            showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
+            return;
+        }
 
     state.userName = name;
     state.roomCode = roomCode;
@@ -183,7 +83,6 @@ async function handleJoinRoom() {
         // Initialize local stream
         await initializeLocalStream();
         // Enable draggable local overlay
-        initDraggableLocal();
         await enumerateAndPopulateDevices();
 
         // Setup Supabase Realtime channel
@@ -322,7 +221,7 @@ function setupRealtimeChannel() {
 
     // Listen for SDP offers
     state.channel.on('broadcast', { event: 'offer' }, async (payload) => {
-        dlog('[SIGNALING] Received offer from participant');
+        console.log('Received offer');
         const offer = payload.payload.offer;
 
         if (!state.peerConnection) {
@@ -331,7 +230,7 @@ function setupRealtimeChannel() {
 
         // Only accept offers when stable to avoid glare
         if (state.peerConnection.signalingState !== 'stable') {
-              dwarn('Ignore offer: PC not stable');
+            console.warn('Ignore offer: PC not stable');
             return;
         }
 
@@ -349,19 +248,19 @@ function setupRealtimeChannel() {
 
     // Listen for SDP answers
     state.channel.on('broadcast', { event: 'answer' }, async (payload) => {
-        dlog('[SIGNALING] Received answer from participant');
+        console.log('Received answer');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
 
         // Only apply first valid answer when we have a local offer
         if (state.receivedAnswer) {
-              dwarn('Ignore duplicate answer');
+            console.warn('Ignore duplicate answer');
             return;
         }
 
         if (state.peerConnection.signalingState !== 'have-local-offer') {
-              dwarn('Ignore answer: PC not in have-local-offer');
+            console.warn('Ignore answer: PC not in have-local-offer');
             return;
         }
 
@@ -371,18 +270,18 @@ function setupRealtimeChannel() {
 
     // Also support spectator-specific answers
     state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-        dlog('[SIGNALING] Received spectator answer');
+        console.log('Received spectator answer');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
 
         if (state.receivedAnswer) {
-              dwarn('Ignore duplicate spectator answer');
+            console.warn('Ignore duplicate spectator answer');
             return;
         }
 
         if (state.peerConnection.signalingState !== 'have-local-offer') {
-              dwarn('Ignore spectator answer: PC not in have-local-offer');      
+            console.warn('Ignore spectator answer: PC not in have-local-offer');
             return;
         }
 
@@ -407,29 +306,26 @@ function setupRealtimeChannel() {
     state.channel.on('presence', { event: 'sync' }, () => {
         const presenceState = state.channel.presenceState();
         const remoteUsers = Object.keys(presenceState).filter(key => key !== state.userName);
-          dlog('[PRESENCE] Remote users detected:', remoteUsers.length, '| isInitiator:', state.isInitiator);
 
         // Only initiator sends offer, once
         if (state.isInitiator && remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
-              dlog('[SIGNALING] Initiator creating offer...');
             createOffer();
         }
     });
 
-        state.channel.subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-              dlog('Subscribed to room channel');
-              // Presence tracking does not need awaiting; avoid parse issues in some contexts
-              state.channel.track({ user: state.userName });
-            setTimeout(() => {
-                const presenceState = state.channel.presenceState();
-                const allUsers = Object.keys(presenceState);
-                const leader = [...allUsers].sort()[0];
-                if (leader === state.userName && state.localStream && !state.peerConnection) {
-                      dlog('[SIGNALING] Leader on subscribe, creating offer...');
-                    createOffer();
-                }
-            }, 800);
+    state.channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+            console.log('Subscribed to room channel');
+            // Announce presence
+            state.channel.track({ user: state.userName });
+            // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
+            if (state.isInitiator && state.localStream && !state.peerConnection) {
+                setTimeout(() => {
+                    if (state.isInitiator && state.localStream && !state.peerConnection) {
+                        createOffer();
+                    }
+                }, 800);
+            }
         }
     });
 }
@@ -465,11 +361,8 @@ async function createOrJoinRoom() {
 }
 
 // Create peer connection
-  async function createPeerConnection() {
-      state.peerConnection = new RTCPeerConnection({
-          iceServers: RTCConfig.iceServers,
-          iceTransportPolicy: RTCConfig.iceTransportPolicy || 'all'
-      });
+async function createPeerConnection() {
+    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });
 
     // Add local tracks
     state.localStream.getTracks().forEach(track => {
@@ -478,7 +371,7 @@ async function createOrJoinRoom() {
 
     // Handle remote tracks
     state.peerConnection.ontrack = (event) => {
-        dlog('Received remote track:', event.track.kind, event.streams);       
+        console.log('Received remote track:', event.track.kind, event.streams);
         if (event.streams && event.streams[0]) {
             remoteVideo.srcObject = event.streams[0];
             remoteVideo.autoplay = true;
@@ -505,17 +398,17 @@ async function createOrJoinRoom() {
 
     // Monitor connection state
     state.peerConnection.onconnectionstatechange = () => {
-          // dlog('Connection state:', state.peerConnection.connectionState);    
+        console.log('Connection state:', state.peerConnection.connectionState);
         updateConnectionStatus();
     };
 
     state.peerConnection.oniceconnectionstatechange = () => {
-          // dlog('ICE connection state:', state.peerConnection.iceConnectionState);
+        console.log('ICE connection state:', state.peerConnection.iceConnectionState);
         updateConnectionStatus();
     };
 
     state.peerConnection.onsignalingstatechange = () => {
-          // dlog('Signaling state:', state.peerConnection.signalingState);      
+        console.log('Signaling state:', state.peerConnection.signalingState);
     };
 }
 
@@ -526,7 +419,6 @@ async function createOffer() {
         await createPeerConnection();
         const offer = await state.peerConnection.createOffer();
         await state.peerConnection.setLocalDescription(offer);
-        dlog('[SIGNALING] Offer created, sending to channel...');
 
         state.channel.send({
             type: 'broadcast',
@@ -536,7 +428,7 @@ async function createOffer() {
 
         showNotification('Waiting for other participant to accept...', 'success');
     } catch (error) {
-        console.error('[ERROR] Failed to create offer:', error);
+        console.error('Error creating offer:', error);
     }
 }
 
@@ -636,9 +528,3 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
-}
-
-
-
-
-
