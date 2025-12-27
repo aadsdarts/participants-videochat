@@ -454,6 +454,27 @@ function setupRealtimeChannel() {
         state.receivedAnswer = true;
     });
 
+    // Also support spectator-specific answers
+    state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
+        console.log('Received spectator answer');
+        const answer = payload.payload.answer;
+
+        if (!state.peerConnection) return;
+
+        if (state.receivedAnswer) {
+            console.warn('Ignore duplicate spectator answer');
+            return;
+        }
+
+        if (state.peerConnection.signalingState !== 'have-local-offer') {
+            console.warn('Ignore spectator answer: PC not in have-local-offer');
+            return;
+        }
+
+        await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        state.receivedAnswer = true;
+    });
+
     // Listen for ICE candidates
     state.channel.on('broadcast', { event: 'ice-candidate' }, async (payload) => {
         const candidate = payload.payload.candidate;
@@ -532,6 +553,7 @@ async function createPeerConnection() {
         if (!state.remoteStream) {
             state.remoteStream = new MediaStream();
             remoteVideo.srcObject = state.remoteStream;
+            try { remoteVideo.muted = false; remoteVideo.play(); } catch {}
         }
         state.remoteStream.addTrack(event.track);
     };
