@@ -1,7 +1,6 @@
 // State Management
 let state = {
     roomCode: null,
-    userName: null,
     localStream: null,
     peerConnection: null,
     channel: null,
@@ -23,7 +22,6 @@ const endCallBtn = document.getElementById('endCallBtn');
 const roomStatus = document.getElementById('roomStatus');
 const notification = document.getElementById('notification');
 const connectionStatus = document.getElementById('connectionStatus');
-const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const cameraSelect = document.getElementById('cameraSelect');
 const micSelect = document.getElementById('micSelect');
@@ -86,39 +84,29 @@ function setupDividerDrag() {
 // Draggable local video overlay
 // Generate random room code
 function generateRoomCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-    // Sanitize room code to 6 uppercase alphanumerics
-    function sanitizeRoomCode(code) {
-        return (code || '')
-            .toUpperCase()
-            .replace(/[^A-Z0-9]/g, '')
-            .slice(0, 6);
+// Sanitize room code to 4 digits
+function sanitizeRoomCode(code) {
+    return (code || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 4);
     }
 
 // Handle room join
 async function handleJoinRoom() {
-    const name = nameInput.value.trim();
-        const rawCode = (roomCodeInput.value || '').trim();
-        const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
-
-    if (!name) {
-        showNotification('Please enter your name', 'error');
+    const rawCode = (roomCodeInput.value || '').trim();
+    const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
+    
+    // If user provided a code, validate format
+    if (rawCode && roomCode.length !== 4) {
+        showNotification('Invalid room code format. Use 4 digits.', 'error');
         return;
     }
 
-        // If user provided a code, validate format
-        if (rawCode && roomCode.length !== 6) {
-            showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
-            return;
-        }
-
-    state.userName = name;
-    state.roomCode = roomCode;
-
     try {
-        roomStatus.textContent = `Room: ${roomCode} | User: ${name}`;
+        roomStatus.textContent = `Room: ${roomCode}`;
         setupModal.style.display = 'none';
         shareBtn.removeAttribute('hidden');
         endCallBtn.removeAttribute('hidden');
@@ -259,7 +247,7 @@ function setupRealtimeChannel() {
     state.channel = supabaseClient.channel(`room-${state.roomCode}`, {
         config: {
             broadcast: { self: false },
-            presence: { key: state.userName }
+            presence: { key: `user-${Math.random().toString(36).substr(2, 9)}` }
         }
     });
 
@@ -361,7 +349,7 @@ function setupRealtimeChannel() {
         if (status === 'SUBSCRIBED') {
             console.log('Subscribed to room channel');
             // Announce presence
-            state.channel.track({ user: state.userName });
+            await state.channel.track({ online: true });
             // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
             if (state.isInitiator && state.localStream && !state.peerConnection) {
                 setTimeout(() => {
@@ -555,7 +543,6 @@ async function handleEndCall() {
     shareBtn.setAttribute('hidden', '');
     endCallBtn.setAttribute('hidden', '');
     roomStatus.textContent = 'Initializing...';
-    nameInput.value = '';
     roomCodeInput.value = '';
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
