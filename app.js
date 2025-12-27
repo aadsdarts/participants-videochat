@@ -27,6 +27,7 @@ const cameraSelect = document.getElementById('cameraSelect');
 const micSelect = document.getElementById('micSelect');
 const applyDevicesBtn = document.getElementById('applyDevicesBtn');
 const deviceControls = document.getElementById('deviceControls');
+const localVideoContainer = document.getElementById('localVideoContainer');
 const toggleAudioBtn = document.getElementById('toggleAudioBtn');
 const toggleVideoBtn = document.getElementById('toggleVideoBtn');
 
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleAudioBtn.addEventListener('click', handleToggleAudio);
     toggleVideoBtn.addEventListener('click', handleToggleVideo);
     setupDividerDrag();
+    setupLocalVideoDrag();
 });
 
 // Setup draggable divider
@@ -88,6 +90,67 @@ function setupDividerDrag() {
             isDragging = false;
             divider.style.backgroundColor = '';
             document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+// Draggable local video overlay within the video section
+function setupLocalVideoDrag() {
+    const parent = document.querySelector('.video-grid');
+    if (!localVideoContainer || !parent) {
+        console.error('Local video drag setup failed: missing elements');
+        return;
+    }
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    localVideoContainer.addEventListener('mousedown', (e) => {
+        const containerRect = localVideoContainer.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = containerRect.left - parentRect.left;
+        startTop = containerRect.top - parentRect.top;
+
+        localVideoContainer.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const parentRect = parent.getBoundingClientRect();
+        const containerRect = localVideoContainer.getBoundingClientRect();
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        const maxLeft = parentRect.width - containerRect.width - 10;
+        const maxTop = parentRect.height - containerRect.height - 10;
+
+        const newLeft = clamp(startLeft + deltaX, 10, maxLeft);
+        const newTop = clamp(startTop + deltaY, 10, maxTop);
+
+        localVideoContainer.style.left = `${newLeft}px`;
+        localVideoContainer.style.top = `${newTop}px`;
+        localVideoContainer.style.right = 'auto';
+        localVideoContainer.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            localVideoContainer.classList.remove('dragging');
             document.body.style.userSelect = '';
         }
     });
