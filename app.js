@@ -44,15 +44,30 @@ function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+    // Sanitize room code to 6 uppercase alphanumerics
+    function sanitizeRoomCode(code) {
+        return (code || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 6);
+    }
+
 // Handle room join
 async function handleJoinRoom() {
     const name = nameInput.value.trim();
-    const roomCode = roomCodeInput.value.trim() || generateRoomCode();
+        const rawCode = (roomCodeInput.value || '').trim();
+        const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
 
     if (!name) {
         showNotification('Please enter your name', 'error');
         return;
     }
+
+        // If user provided a code, validate format
+        if (rawCode && roomCode.length !== 6) {
+            showNotification('Invalid room code format. Use 6 letters/numbers.', 'error');
+            return;
+        }
 
     state.userName = name;
     state.roomCode = roomCode;
