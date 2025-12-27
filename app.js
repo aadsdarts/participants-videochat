@@ -504,6 +504,14 @@ function setupRealtimeChannel() {
             console.log('Subscribed to room channel');
             // Announce presence
             await state.channel.track({ user: state.userName });
+            // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
+            if (state.isInitiator && state.localStream && !state.peerConnection) {
+                setTimeout(() => {
+                    if (state.isInitiator && state.localStream && !state.peerConnection) {
+                        createOffer();
+                    }
+                }, 800);
+            }
         }
     });
 }
