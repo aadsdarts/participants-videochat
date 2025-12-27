@@ -105,6 +105,8 @@ async function handleJoinRoom() {
         return;
     }
 
+    state.roomCode = roomCode;
+
     try {
         roomStatus.textContent = `Room: ${roomCode}`;
         setupModal.style.display = 'none';
