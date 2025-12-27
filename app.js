@@ -9,7 +9,8 @@ let state = {
     spectatorToken: null,
     selectedVideoDeviceId: null,
     selectedAudioDeviceId: null,
-    receivedAnswer: false
+    receivedAnswer: false,
+    pendingIceCandidates: []
 };
 
 // DOM Elements
@@ -346,6 +347,9 @@ function setupRealtimeChannel() {
         }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+        // Now that remote description is set, flush any buffered ICE candidates
+        flushPendingIceCandidates();
         const answer = await state.peerConnection.createAnswer();
         await state.peerConnection.setLocalDescription(answer);
 
@@ -376,6 +380,8 @@ function setupRealtimeChannel() {
         }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        // Flush buffered ICE after remote description is set
+        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -397,6 +403,8 @@ function setupRealtimeChannel() {
         }
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        // Flush buffered ICE after remote description is set
+        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -404,12 +412,19 @@ function setupRealtimeChannel() {
     state.channel.on('broadcast', { event: 'ice-candidate' }, async (payload) => {
         const candidate = payload.payload.candidate;
 
-        if (state.peerConnection && candidate) {
-            try {
-                await state.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (error) {
-                console.error('Error adding ICE candidate:', error);
-            }
+        if (!candidate) return;
+        // If PC isn't ready or remote description isn't set yet, buffer candidates
+        const pc = state.peerConnection;
+        const hasRemote = pc && pc.remoteDescription && pc.remoteDescription.type;
+        if (!pc || !hasRemote) {
+            state.pendingIceCandidates.push(candidate);
+            return;
+        }
+
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (error) {
+            console.error('Error adding ICE candidate:', error);
         }
     });
 
@@ -437,6 +452,22 @@ function setupRealtimeChannel() {
                     }
                 }, 800);
             }
+        }
+    });
+}
+
+// Flush buffered ICE candidates once remoteDescription is set
+function flushPendingIceCandidates() {
+    const pc = state.peerConnection;
+    if (!pc || !(pc.remoteDescription && pc.remoteDescription.type)) return;
+
+    const queue = state.pendingIceCandidates || [];
+    state.pendingIceCandidates = [];
+    queue.forEach(async (raw) => {
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(raw));
+        } catch (err) {
+            console.error('Error flushing ICE candidate:', err);
         }
     });
 }
