@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chat - Participant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Video Chat Room</h1>
+            <div class="room-info">
+                <p id="roomStatus">Initializing...</p>
+                <button id="shareBtn" class="btn" style="display: none;">Share Spectator Link</button>
+                <button id="endCallBtn" class="btn btn-danger" style="display: none;">End Call</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Left side: Video -->
+            <div class="video-section">
+                <div class="video-grid">
+                    <div class="video-container">
+                        <video id="localVideo" autoplay muted playsinline></video>
+                        <span class="video-label">You</span>
+                    </div>
+                    <div class="video-container">
+                        <video id="remoteVideo" autoplay playsinline></video>
+                        <span class="video-label">Participant</span>
+                        <span id="connectionStatus" class="connection-status">Waiting...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider"></div>
+
+            <!-- Right side: DartConnect -->
+            <div class="dartconnect-section">
+                <iframe id="dartconnectFrame" src="https://dartconnect.com" title="DartConnect"></iframe>
+            </div>
+        </div>
+
+        <!-- Room Setup Modal -->
+        <div id="setupModal" class="modal">
+            <div class="modal-content">
+                <h2>Join Video Chat</h2>
+                <div class="form-group">
+                    <label for="nameInput">Your Name:</label>
+                    <input type="text" id="nameInput" placeholder="Enter your name" />
+                </div>
+                <div class="form-group">
+                    <label for="roomCodeInput">Room Code:</label>
+                    <input type="text" id="roomCodeInput" placeholder="Enter room code or leave blank to create" />
+                </div>
+                <button id="joinBtn" class="btn btn-primary">Join Room</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    overflow: hidden;
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #222;
+    padding: 15px 20px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header h1 {
+    font-size: 24px;
+}
+
+.room-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.room-info p {
+    font-size: 14px;
+    color: #aaa;
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+}
+
+.video-section {
+    flex: 1;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+}
+
+.video-grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+    justify-items: center;
+}
+
+.video-container {
+    width: 100%;
+    height: 100%;
+    background: #111;
+    border: 2px solid #444;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.video-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.connection-status {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(255, 165, 0, 0.8);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #000;
+}
+
+.connection-status.connected {
+    background: rgba(0, 255, 0, 0.8);
+}
+
+.divider {
+    width: 8px;
+    background: #333;
+    cursor: col-resize;
+    transition: background 0.2s;
+}
+
+.divider:hover {
+    background: #555;
+}
+
+.dartconnect-section {
+    flex: 1;
+    background: #f5f5f5;
+    overflow: hidden;
+}
+
+#dartconnectFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #222;
+    padding: 40px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid #444;
+}
+
+.modal-content h2 {
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #ccc;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #0084ff;
+    box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-weight: 500;
+}
+
+.btn-primary {
+    width: 100%;
+    background: #0084ff;
+    color: #fff;
+    padding: 12px;
+    font-size: 16px;
+}
+
+.btn-primary:hover {
+    background: #0073e6;
+}
+
+.btn {
+    background: #0084ff;
+    color: #fff;
+}
+
+.btn:hover {
+    background: #0073e6;
+}
+
+.btn-danger {
+    background: #ff4444;
+}
+
+.btn-danger:hover {
+    background: #dd0000;
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    background: #333;
+    border-left: 4px solid #0084ff;
+    border-radius: 4px;
+    display: none;
+    z-index: 2000;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+.notification.show {
+    display: block;
+}
+
+.notification.error {
+    border-left-color: #ff4444;
+}
+
+.notification.success {
+    border-left-color: #44ff44;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dartconnect-section {
+        display: none;
+    }
+
+    .divider {
+        display: none;
+    }
+}
