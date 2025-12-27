@@ -40,6 +40,104 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Draggable local video overlay
+function initDraggableLocal() {
+    const el = document.querySelector('.local-container');
+    if (!el || !el.parentElement) return;
+
+    const container = el.parentElement; // video-grid
+    let dragging = false;
+    let startX = 0, startY = 0;
+    let startLeft = 0, startTop = 0;
+
+    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+    // Restore saved position
+    try {
+        const saved = JSON.parse(localStorage.getItem('localVideoPos') || '{}');
+        if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+            el.style.left = `${saved.left}px`;
+            el.style.top = `${saved.top}px`;
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+        }
+    } catch {}
+
+    const onMouseDown = (e) => {
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = el.getBoundingClientRect();
+        const parentRect = container.getBoundingClientRect();
+        startLeft = rect.left - parentRect.left;
+        startTop = rect.top - parentRect.top;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+
+    const onMouseMove = (e) => {
+        if (!dragging) return;
+        const parentRect = container.getBoundingClientRect();
+        const newLeft = clamp(startLeft + (e.clientX - startX), 0, parentRect.width - el.offsetWidth);
+        const newTop = clamp(startTop + (e.clientY - startY), 0, parentRect.height - el.offsetHeight);
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    };
+
+    const onMouseUp = () => {
+        dragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        const rect = el.getBoundingClientRect();
+        const parentRect = container.getBoundingClientRect();
+        localStorage.setItem('localVideoPos', JSON.stringify({
+            left: rect.left - parentRect.left,
+            top: rect.top - parentRect.top
+        }));
+    };
+
+    const onTouchStart = (e) => {
+        if (!e.touches || !e.touches[0]) return;
+        dragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        const rect = el.getBoundingClientRect();
+        const parentRect = container.getBoundingClientRect();
+        startLeft = rect.left - parentRect.left;
+        startTop = rect.top - parentRect.top;
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd);
+    };
+
+    const onTouchMove = (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        const parentRect = container.getBoundingClientRect();
+        const newLeft = clamp(startLeft + (e.touches[0].clientX - startX), 0, parentRect.width - el.offsetWidth);
+        const newTop = clamp(startTop + (e.touches[0].clientY - startY), 0, parentRect.height - el.offsetHeight);
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    };
+
+    const onTouchEnd = () => {
+        dragging = false;
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+        const rect = el.getBoundingClientRect();
+        const parentRect = container.getBoundingClientRect();
+        localStorage.setItem('localVideoPos', JSON.stringify({
+            left: rect.left - parentRect.left,
+            top: rect.top - parentRect.top
+        }));
+    };
+
+    el.addEventListener('mousedown', onMouseDown);
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+}
+
 // Generate random room code
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -83,6 +181,7 @@ async function handleJoinRoom() {
         // Initialize local stream
         await initializeLocalStream();
         // Enable draggable local overlay
+        initDraggableLocal();
         await enumerateAndPopulateDevices();
 
         // Setup Supabase Realtime channel
