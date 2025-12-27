@@ -414,9 +414,21 @@ function setupRealtimeChannel() {
         }
     });
 
-    state.channel.subscribe(async (status) => {
+        state.channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
             console.log('Subscribed to room channel');
+            await state.channel.track({ user: state.userName });
+            setTimeout(() => {
+                const presenceState = state.channel.presenceState();
+                const allUsers = Object.keys(presenceState);
+                const leader = [...allUsers].sort()[0];
+                if (leader === state.userName && state.localStream && !state.peerConnection) {
+                    console.log('[SIGNALING] Leader on subscribe, creating offer...');
+                    createOffer();
+                }
+            }, 800);
+        }
+    });
             // Announce presence
             await state.channel.track({ user: state.userName });
             // Fallback: if initiator, local media ready, and no PC yet, kick off an offer
@@ -630,6 +642,9 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
+
 
 
 
