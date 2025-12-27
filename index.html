@@ -35,25 +35,20 @@
             <!-- Left side: Video -->
             <div class="video-section">
                 <div class="video-grid">
-                    <div class="video-container">
-                    </div>
-                    <div class="video-container">
-                    </div>
-                </div>
-                        <div class="video-container">
-                            <video id="remoteVideo" autoplay playsinline></video>
-                            <button id="playPrompt" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); padding:12px 24px; background:rgba(0,0,0,0.8); color:white; border:2px solid white; border-radius:8px; cursor:pointer; z-index:100;" onclick="document.getElementById('remoteVideo').play(); this.style.display='none';">▶ Start Video</button>
-                            <span class="video-label">Participant</span>
-                            <span id="connectionStatus" class="connection-status">Waiting...</span>
-                        </div>
+                    <!-- Remote Video (larger) -->
+                    <div class="video-container remote-container">
+                        <video id="remoteVideo" autoplay playsinline></video>
+                        <button id="playPrompt" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); padding:12px 24px; background:rgba(0,0,0,0.8); color:white; border:2px solid white; border-radius:8px; cursor:pointer; z-index:100;" onclick="document.getElementById('remoteVideo').play(); this.style.display='none';">▶ Start Video</button>
+                        <span class="video-label">Participant</span>
+                        <span id="connectionStatus" class="connection-status">Waiting...</span>
                     </div>
 
-                    <!-- Local video as draggable floating overlay -->
-                    <div id="localFloat" class="local-float">
+                    <!-- Local Video (smaller, bottom-right) -->
+                    <div class="video-container local-container">
                         <video id="localVideo" autoplay muted playsinline></video>
                         <span class="video-label">You</span>
-                        <span class="resize-handle" aria-hidden="true"></span>
                     </div>
+                </div>
             </div>
 
             <!-- Divider -->
