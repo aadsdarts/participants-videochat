@@ -1,11 +1,11 @@
-* {
+﻿* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: ''Segoe UI'', Tahoma, Geneva, Verdana, sans-serif;
     background: #1a1a1a;
     color: #fff;
     overflow: hidden;
@@ -46,7 +46,6 @@ body {
 
 .content {
     display: flex;
-    flex-direction: row;
     flex: 1;
     gap: 0;
     overflow: hidden;
@@ -54,51 +53,52 @@ body {
 
 .video-section {
     flex: 1;
-    width: 50%;
     background: #000;
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: stretch;
+    align-items: center;
+    justify-content: center;
     padding: 10px;
     position: relative;
-    overflow: hidden;
 }
 
 .video-grid {
     width: 100%;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    background: #000;
 }
 
-.local-container {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 220px;
-    height: auto;
-    background: #111;
-    border: 2px solid #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    aspect-ratio: 16 / 9;
-    z-index: 20;
-    cursor: move;
-    touch-action: none;
-}
-
-.remote-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+/* Remote video - large, centered */
+#remoteVideoContainer {
     width: 100%;
     height: 100%;
+    max-width: 1920px;
+    max-height: calc(1920px * 9 / 16);
+    position: relative;
     background: #111;
     border: 2px solid #444;
     border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 16 / 9;
+    margin: auto;
+}
+
+/* Local video - small picture-in-picture */
+#localVideoContainer {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 240px;
+    height: 135px;
+    background: #111;
+    border: 2px solid #444;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 video {
@@ -108,10 +108,6 @@ video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: none;
-}
-
-.video-container video {
     transform: none !important;
 }
 
@@ -123,6 +119,14 @@ video {
     padding: 5px 10px;
     border-radius: 4px;
     font-size: 12px;
+    z-index: 1;
+}
+
+#localVideoContainer .video-label {
+    font-size: 10px;
+    padding: 3px 8px;
+    top: 5px;
+    left: 5px;
 }
 
 .connection-status {
@@ -153,7 +157,6 @@ video {
 
 .dartconnect-section {
     flex: 1;
-    width: 50%;
     background: #f5f5f5;
     overflow: hidden;
 }
@@ -337,9 +340,11 @@ video {
 
 /* Responsive */
 @media (max-width: 1024px) {
-    .video-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr;
+    #localVideoContainer {
+        width: 160px;
+        height: 90px;
+        bottom: 10px;
+        right: 10px;
     }
 
     .dartconnect-section {
@@ -349,57 +354,4 @@ video {
     .divider {
         display: none;
     }
-}
-
-/* Local floating video overlay */
-.local-float {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 240px;
-    aspect-ratio: 16 / 9;
-    background: #111;
-    border: 2px solid #444;
-    border-radius: 8px;
-    overflow: hidden;
-    z-index: 1500;
-    cursor: move;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-}
-
-.local-float video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.local-float .resize-handle {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    bottom: 6px;
-    right: 6px;
-    background: rgba(255,255,255,0.8);
-    border-radius: 3px;
-    cursor: se-resize;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
-/* Remote autoplay prompt button */
-#playPrompt {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 12px 24px;
-    background: rgba(0,0,0,0.8);
-    color: white;
-    border: 2px solid white;
-    border-radius: 8px;
-    cursor: pointer;
-    z-index: 100;
 }
