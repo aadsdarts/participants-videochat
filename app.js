@@ -346,7 +346,8 @@ function setupRealtimeChannel() {
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
         // Now that remote description is set, flush any buffered ICE candidates
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
+        flushPendingIceCandidates();
         const answer = await state.peerConnection.createAnswer();
         await state.peerConnection.setLocalDescription(answer);
 
@@ -378,7 +379,8 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
+        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -401,7 +403,8 @@ function setupRealtimeChannel() {
 
         await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         // Flush buffered ICE after remote description is set
-        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;\n        flushPendingIceCandidates();
+        state.remoteDescriptionSet = true;\n        state.remoteDescriptionSet = true;
+        flushPendingIceCandidates();
         state.receivedAnswer = true;
     });
 
@@ -509,7 +512,11 @@ async function createOrJoinRoom() {
 
 // Create peer connection
 async function createPeerConnection() {
-    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });`n    state.remoteDescriptionSet = false;`n    state.pendingIceCandidates = [];`n    state.remoteDescriptionSet = false;`n    state.pendingIceCandidates = [];
+    state.peerConnection = new RTCPeerConnection({ iceServers: RTCConfig.iceServers });
+    state.remoteDescriptionSet = false;
+    state.pendingIceCandidates = [];
+    state.remoteDescriptionSet = false;
+    state.pendingIceCandidates = [];
 
     // Add local tracks
     state.localStream.getTracks().forEach(track => {
@@ -696,11 +703,13 @@ function handleToggleVideo() {
 // Show notification
 function showNotification(message, type = 'info') {
     notification.textContent = message;
-    notification.className = `notification show ${type}`;
+    notification.className = 
+otification show ${type}`;
 
     setTimeout(() => {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
