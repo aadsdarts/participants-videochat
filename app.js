@@ -320,7 +320,7 @@ function setupRealtimeChannel() {
 
     // Listen for SDP offers
     state.channel.on('broadcast', { event: 'offer' }, async (payload) => {
-        console.log('Received offer');
+        console.log('[SIGNALING] Received offer from participant');
         const offer = payload.payload.offer;
 
         if (!state.peerConnection) {
@@ -347,7 +347,7 @@ function setupRealtimeChannel() {
 
     // Listen for SDP answers
     state.channel.on('broadcast', { event: 'answer' }, async (payload) => {
-        console.log('Received answer');
+        console.log('[SIGNALING] Received answer from participant');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
@@ -369,7 +369,7 @@ function setupRealtimeChannel() {
 
     // Also support spectator-specific answers
     state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-        console.log('Received spectator answer');
+        console.log('[SIGNALING] Received spectator answer');
         const answer = payload.payload.answer;
 
         if (!state.peerConnection) return;
@@ -405,9 +405,11 @@ function setupRealtimeChannel() {
     state.channel.on('presence', { event: 'sync' }, () => {
         const presenceState = state.channel.presenceState();
         const remoteUsers = Object.keys(presenceState).filter(key => key !== state.userName);
+        console.log('[PRESENCE] Remote users detected:', remoteUsers.length, '| isInitiator:', state.isInitiator);
 
         // Only initiator sends offer, once
         if (state.isInitiator && remoteUsers.length > 0 && !state.peerConnection && state.localStream) {
+            console.log('[SIGNALING] Initiator creating offer...');
             createOffer();
         }
     });
@@ -518,6 +520,7 @@ async function createOffer() {
         await createPeerConnection();
         const offer = await state.peerConnection.createOffer();
         await state.peerConnection.setLocalDescription(offer);
+        console.log('[SIGNALING] Offer created, sending to channel...');
 
         state.channel.send({
             type: 'broadcast',
@@ -527,7 +530,7 @@ async function createOffer() {
 
         showNotification('Waiting for other participant to accept...', 'success');
     } catch (error) {
-        console.error('Error creating offer:', error);
+        console.error('[ERROR] Failed to create offer:', error);
     }
 }
 
