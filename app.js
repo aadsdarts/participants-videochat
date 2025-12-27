@@ -27,6 +27,8 @@ const cameraSelect = document.getElementById('cameraSelect');
 const micSelect = document.getElementById('micSelect');
 const applyDevicesBtn = document.getElementById('applyDevicesBtn');
 const deviceControls = document.getElementById('deviceControls');
+const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+const toggleVideoBtn = document.getElementById('toggleVideoBtn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     shareBtn.addEventListener('click', handleShareSpectatorLink);
     endCallBtn.addEventListener('click', handleEndCall);
     applyDevicesBtn.addEventListener('click', handleApplyDevices);
+    toggleAudioBtn.addEventListener('click', handleToggleAudio);
+    toggleVideoBtn.addEventListener('click', handleToggleVideo);
     setupDividerDrag();
 });
 
@@ -120,6 +124,8 @@ async function handleJoinRoom() {
         setupModal.style.display = 'none';
         shareBtn.removeAttribute('hidden');
         endCallBtn.removeAttribute('hidden');
+        toggleAudioBtn.removeAttribute('hidden');
+        toggleVideoBtn.removeAttribute('hidden');
         deviceControls.removeAttribute('hidden');
 
         // Initialize local stream
@@ -552,12 +558,40 @@ async function handleEndCall() {
     setupModal.style.display = 'flex';
     shareBtn.setAttribute('hidden', '');
     endCallBtn.setAttribute('hidden', '');
+    toggleAudioBtn.setAttribute('hidden', '');
+    toggleVideoBtn.setAttribute('hidden', '');
     roomStatus.textContent = 'Initializing...';
     roomCodeInput.value = '';
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
+    localVideo.style.opacity = '1';
 
     showNotification('Call ended', 'success');
+}
+
+// Toggle audio (mute/unmute)
+function handleToggleAudio() {
+    if (!state.localStream) return;
+    
+    const audioTrack = state.localStream.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleAudioBtn.textContent = audioTrack.enabled ? '🔇 Mute' : '🔊 Unmute';
+        showNotification(audioTrack.enabled ? 'Microphone unmuted' : 'Microphone muted', 'info');
+    }
+}
+
+// Toggle video (hide/show)
+function handleToggleVideo() {
+    if (!state.localStream) return;
+    
+    const videoTrack = state.localStream.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleVideoBtn.textContent = videoTrack.enabled ? '📹 Hide Video' : '📹 Show Video';
+        localVideo.style.opacity = videoTrack.enabled ? '1' : '0.3';
+        showNotification(videoTrack.enabled ? 'Camera enabled' : 'Camera disabled', 'info');
+    }
 }
 
 // Show notification
