@@ -497,17 +497,17 @@ async function createPeerConnection() {
 
     // Monitor connection state
     state.peerConnection.onconnectionstatechange = () => {
-        console.log('Connection state:', state.peerConnection.connectionState);
+        // console.log('Connection state:', state.peerConnection.connectionState);
         updateConnectionStatus();
     };
 
     state.peerConnection.oniceconnectionstatechange = () => {
-        console.log('ICE connection state:', state.peerConnection.iceConnectionState);
+        // console.log('ICE connection state:', state.peerConnection.iceConnectionState);
         updateConnectionStatus();
     };
 
     state.peerConnection.onsignalingstatechange = () => {
-        console.log('Signaling state:', state.peerConnection.signalingState);
+        // console.log('Signaling state:', state.peerConnection.signalingState);
     };
 }
 
