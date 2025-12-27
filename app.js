@@ -47,8 +47,26 @@ function initDraggableLocal() {
     let dragging = false;
     let startX = 0, startY = 0;
     let startLeft = 0, startTop = 0;
+    let resizing = false;
+    let startWidth = 0;
 
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+    // Restore saved position/size
+    try {
+        const saved = JSON.parse(localStorage.getItem('localFloatPos') || '{}');
+        const savedSize = JSON.parse(localStorage.getItem('localFloatSize') || '{}');
+        if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+            el.style.left = `${clamp(saved.left, 10, window.innerWidth - 10)}px`;
+            el.style.top = `${clamp(saved.top, 10, window.innerHeight - 10)}px`;
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+        }
+        if (typeof savedSize.width === 'number') {
+            const w = clamp(savedSize.width, 160, 480);
+            el.style.width = `${w}px`;
+        }
+    } catch {}
 
     const onMouseDown = (e) => {
         dragging = true;
@@ -75,6 +93,23 @@ function initDraggableLocal() {
         dragging = false;
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
+        // Snap to nearest corner and persist
+        const rect = el.getBoundingClientRect();
+        const margins = 20;
+        const corners = [
+            { left: margins, top: margins },
+            { left: window.innerWidth - rect.width - margins, top: margins },
+            { left: window.innerWidth - rect.width - margins, top: window.innerHeight - rect.height - margins },
+            { left: margins, top: window.innerHeight - rect.height - margins },
+        ];
+        const dist = (a,b) => Math.hypot(a.left - b.left, a.top - b.top);
+        const current = { left: rect.left, top: rect.top };
+        const nearest = corners.reduce((best, c) => dist(c, current) < dist(best, current) ? c : best, corners[0]);
+        el.style.left = `${nearest.left}px`;
+        el.style.top = `${nearest.top}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+        localStorage.setItem('localFloatPos', JSON.stringify(nearest));
     };
 
     const onTouchStart = (e) => {
@@ -106,10 +141,89 @@ function initDraggableLocal() {
         document.removeEventListener('touchmove', onTouchMove);
         document.removeEventListener('touchend', onTouchEnd);
         document.removeEventListener('touchcancel', onTouchEnd);
+        // Persist final position
+        const rect = el.getBoundingClientRect();
+        const pos = { left: rect.left, top: rect.top };
+        localStorage.setItem('localFloatPos', JSON.stringify(pos));
     };
 
     el.addEventListener('mousedown', onMouseDown);
     el.addEventListener('touchstart', onTouchStart, { passive: true });
+
+    // Double-click to cycle corners
+    el.addEventListener('dblclick', () => {
+        const rect = el.getBoundingClientRect();
+        const margins = 20;
+        const corners = [
+            { left: margins, top: margins },
+            { left: window.innerWidth - rect.width - margins, top: margins },
+            { left: window.innerWidth - rect.width - margins, top: window.innerHeight - rect.height - margins },
+            { left: margins, top: window.innerHeight - rect.height - margins },
+        ];
+        const current = { left: rect.left, top: rect.top };
+        const idx = corners.findIndex(c => Math.abs(c.left - current.left) < 5 && Math.abs(c.top - current.top) < 5);
+        const next = corners[(idx + 1) % corners.length];
+        el.style.left = `${next.left}px`;
+        el.style.top = `${next.top}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+        localStorage.setItem('localFloatPos', JSON.stringify(next));
+    });
+
+    // Resize handle
+    const handle = el.querySelector('.resize-handle');
+    if (handle) {
+        const onResizeMouseDown = (e) => {
+            e.stopPropagation();
+            resizing = true;
+            startX = e.clientX;
+            const rect = el.getBoundingClientRect();
+            startWidth = rect.width;
+            document.addEventListener('mousemove', onResizeMouseMove);
+            document.addEventListener('mouseup', onResizeMouseUp);
+        };
+        const onResizeMouseMove = (e) => {
+            if (!resizing) return;
+            const delta = e.clientX - startX;
+            const newW = clamp(startWidth + delta, 160, 480);
+            el.style.width = `${newW}px`;
+        };
+        const onResizeMouseUp = () => {
+            resizing = false;
+            document.removeEventListener('mousemove', onResizeMouseMove);
+            document.removeEventListener('mouseup', onResizeMouseUp);
+            const rect = el.getBoundingClientRect();
+            localStorage.setItem('localFloatSize', JSON.stringify({ width: rect.width }));
+        };
+        const onResizeTouchStart = (e) => {
+            if (!e.touches || !e.touches[0]) return;
+            e.stopPropagation();
+            resizing = true;
+            startX = e.touches[0].clientX;
+            const rect = el.getBoundingClientRect();
+            startWidth = rect.width;
+            document.addEventListener('touchmove', onResizeTouchMove, { passive: false });
+            document.addEventListener('touchend', onResizeTouchEnd);
+            document.addEventListener('touchcancel', onResizeTouchEnd);
+        };
+        const onResizeTouchMove = (e) => {
+            if (!resizing || !e.touches || !e.touches[0]) return;
+            e.preventDefault();
+            const delta = e.touches[0].clientX - startX;
+            const newW = clamp(startWidth + delta, 160, 480);
+            el.style.width = `${newW}px`;
+        };
+        const onResizeTouchEnd = () => {
+            resizing = false;
+            document.removeEventListener('touchmove', onResizeTouchMove);
+            document.removeEventListener('touchend', onResizeTouchEnd);
+            document.removeEventListener('touchcancel', onResizeTouchEnd);
+            const rect = el.getBoundingClientRect();
+            localStorage.setItem('localFloatSize', JSON.stringify({ width: rect.width }));
+        };
+        handle.addEventListener('mousedown', onResizeMouseDown);
+        handle.addEventListener('touchstart', onResizeTouchStart, { passive: true });
+    }
 }
 // Generate random room code
 function generateRoomCode() {
