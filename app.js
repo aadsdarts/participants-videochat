@@ -636,7 +636,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
-
+}
 
 
 
