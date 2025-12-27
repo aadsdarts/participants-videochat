@@ -36,15 +36,22 @@
             <div class="video-section">
                 <div class="video-grid">
                     <div class="video-container">
+                    </div>
+                    <div class="video-container">
+                    </div>
+                </div>
+                        <div class="video-container">
+                            <video id="remoteVideo" autoplay playsinline></video>
+                            <span class="video-label">Participant</span>
+                            <span id="connectionStatus" class="connection-status">Waiting...</span>
+                        </div>
+                    </div>
+
+                    <!-- Local video as draggable floating overlay -->
+                    <div id="localFloat" class="local-float">
                         <video id="localVideo" autoplay muted playsinline></video>
                         <span class="video-label">You</span>
                     </div>
-                    <div class="video-container">
-                        <video id="remoteVideo" autoplay playsinline></video>
-                        <span class="video-label">Participant</span>
-                        <span id="connectionStatus" class="connection-status">Waiting...</span>
-                    </div>
-                </div>
             </div>
 
             <!-- Divider -->

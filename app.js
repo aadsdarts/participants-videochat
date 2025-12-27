@@ -39,6 +39,78 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDevicesBtn.addEventListener('click', handleApplyDevices);
 });
 
+// Draggable local video overlay
+function initDraggableLocal() {
+    const el = document.getElementById('localFloat');
+    if (!el) return;
+
+    let dragging = false;
+    let startX = 0, startY = 0;
+    let startLeft = 0, startTop = 0;
+
+    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+    const onMouseDown = (e) => {
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = el.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+
+    const onMouseMove = (e) => {
+        if (!dragging) return;
+        const newLeft = clamp(startLeft + (e.clientX - startX), 10, window.innerWidth - el.offsetWidth - 10);
+        const newTop = clamp(startTop + (e.clientY - startY), 10, window.innerHeight - el.offsetHeight - 10);
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    };
+
+    const onMouseUp = () => {
+        dragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    const onTouchStart = (e) => {
+        if (!e.touches || !e.touches[0]) return;
+        dragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        const rect = el.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd);
+        document.addEventListener('touchcancel', onTouchEnd);
+    };
+
+    const onTouchMove = (e) => {
+        if (!dragging || !e.touches || !e.touches[0]) return;
+        e.preventDefault();
+        const newLeft = clamp(startLeft + (e.touches[0].clientX - startX), 10, window.innerWidth - el.offsetWidth - 10);
+        const newTop = clamp(startTop + (e.touches[0].clientY - startY), 10, window.innerHeight - el.offsetHeight - 10);
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    };
+
+    const onTouchEnd = () => {
+        dragging = false;
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+        document.removeEventListener('touchcancel', onTouchEnd);
+    };
+
+    el.addEventListener('mousedown', onMouseDown);
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+}
 // Generate random room code
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -81,6 +153,8 @@ async function handleJoinRoom() {
 
         // Initialize local stream
         await initializeLocalStream();
+        // Enable draggable local overlay
+        initDraggableLocal();
         await enumerateAndPopulateDevices();
 
         // Setup Supabase Realtime channel
