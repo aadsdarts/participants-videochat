@@ -557,13 +557,18 @@ async function createPeerConnection() {
 
     // Handle remote tracks
     state.peerConnection.ontrack = (event) => {
-        console.log('Received remote track');
-        if (!state.remoteStream) {
-            state.remoteStream = new MediaStream();
-            remoteVideo.srcObject = state.remoteStream;
-            try { remoteVideo.muted = false; remoteVideo.play(); } catch {}
+        console.log('Received remote track:', event.track.kind, event.streams);
+        if (event.streams && event.streams[0]) {
+            remoteVideo.srcObject = event.streams[0];
+            remoteVideo.autoplay = true;
+            remoteVideo.playsInline = true;
+            remoteVideo.muted = false;
+            remoteVideo.play().catch(e => {
+                console.log('Autoplay blocked:', e);
+                const btn = document.getElementById('playPrompt');
+                if (btn) btn.style.display = 'block';
+            });
         }
-        state.remoteStream.addTrack(event.track);
     };
 
     // Handle ICE candidates
@@ -586,6 +591,10 @@ async function createPeerConnection() {
     state.peerConnection.oniceconnectionstatechange = () => {
         console.log('ICE connection state:', state.peerConnection.iceConnectionState);
         updateConnectionStatus();
+    };
+
+    state.peerConnection.onsignalingstatechange = () => {
+        console.log('Signaling state:', state.peerConnection.signalingState);
     };
 }
 
