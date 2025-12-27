@@ -2,8 +2,8 @@ const liveListEl = document.getElementById('liveList');
 const statusEl = document.getElementById('status');
 const refreshBtn = document.getElementById('refreshBtn');
 
-// Hardcode spectator app base URL
-const spectatorBase = 'https://aadsdarts.github.io/spectators-videochat/spectator';
+// Point to spectator viewer page
+const spectatorBase = 'https://aadsdarts.github.io/spectators-videochat/viewer.html';
 
 function formatAgo(isoString) {
     const created = new Date(isoString);
