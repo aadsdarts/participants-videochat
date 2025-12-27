@@ -7,7 +7,9 @@ let state = {
     channel: null,
     isInitiator: false,
     remoteStream: null,
-    spectatorToken: null
+    spectatorToken: null,
+    selectedVideoDeviceId: null,
+    selectedAudioDeviceId: null
 };
 
 // DOM Elements
@@ -22,6 +24,10 @@ const notification = document.getElementById('notification');
 const connectionStatus = document.getElementById('connectionStatus');
 const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
+const cameraSelect = document.getElementById('cameraSelect');
+const micSelect = document.getElementById('micSelect');
+const applyDevicesBtn = document.getElementById('applyDevicesBtn');
+const deviceControls = document.getElementById('deviceControls');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     joinBtn.addEventListener('click', handleJoinRoom);
     shareBtn.addEventListener('click', handleShareSpectatorLink);
     endCallBtn.addEventListener('click', handleEndCall);
+    applyDevicesBtn.addEventListener('click', handleApplyDevices);
 });
 
 // Generate random room code
@@ -54,9 +61,11 @@ async function handleJoinRoom() {
         setupModal.style.display = 'none';
         shareBtn.removeAttribute('hidden');
         endCallBtn.removeAttribute('hidden');
+        deviceControls.removeAttribute('hidden');
 
         // Initialize local stream
         await initializeLocalStream();
+        await enumerateAndPopulateDevices();
 
         // Setup Supabase Realtime channel
         setupRealtimeChannel();
@@ -77,15 +86,109 @@ async function initializeLocalStream() {
         state.localStream = await navigator.mediaDevices.getUserMedia({
             video: {
                 width: { ideal: 1280 },
-                height: { ideal: 720 }
+                height: { ideal: 720 },
+                deviceId: state.selectedVideoDeviceId ? { exact: state.selectedVideoDeviceId } : undefined
             },
-            audio: true
+            audio: {
+                deviceId: state.selectedAudioDeviceId ? { exact: state.selectedAudioDeviceId } : undefined
+            }
         });
 
         localVideo.srcObject = state.localStream;
     } catch (error) {
         console.error('Error accessing media devices:', error);
         throw error;
+    }
+}
+
+async function enumerateAndPopulateDevices() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+
+        const currentVideoTrack = state.localStream?.getVideoTracks()[0];
+        const currentAudioTrack = state.localStream?.getAudioTracks()[0];
+        const currentVideoId = currentVideoTrack?.getSettings()?.deviceId;
+        const currentAudioId = currentAudioTrack?.getSettings()?.deviceId;
+
+        cameraSelect.innerHTML = '';
+        micSelect.innerHTML = '';
+
+        videoDevices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || `Camera ${cameraSelect.length + 1}`;
+            if (d.deviceId === currentVideoId) opt.selected = true;
+            cameraSelect.appendChild(opt);
+        });
+
+        audioDevices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || `Microphone ${micSelect.length + 1}`;
+            if (d.deviceId === currentAudioId) opt.selected = true;
+            micSelect.appendChild(opt);
+        });
+
+        state.selectedVideoDeviceId = cameraSelect.value || currentVideoId || null;
+        state.selectedAudioDeviceId = micSelect.value || currentAudioId || null;
+    } catch (error) {
+        console.error('Error enumerating devices:', error);
+    }
+}
+
+async function handleApplyDevices() {
+    const newVideoId = cameraSelect.value;
+    const newAudioId = micSelect.value;
+
+    // If no change, skip
+    if (newVideoId === state.selectedVideoDeviceId && newAudioId === state.selectedAudioDeviceId) {
+        showNotification('Devices unchanged', 'info');
+        return;
+    }
+
+    state.selectedVideoDeviceId = newVideoId;
+    state.selectedAudioDeviceId = newAudioId;
+
+    try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                deviceId: newVideoId ? { exact: newVideoId } : undefined
+            },
+            audio: {
+                deviceId: newAudioId ? { exact: newAudioId } : undefined
+            }
+        });
+
+        // Swap local preview
+        if (state.localStream) {
+            state.localStream.getTracks().forEach(t => t.stop());
+        }
+        state.localStream = newStream;
+        localVideo.srcObject = newStream;
+
+        // Replace tracks in ongoing peer connection
+        if (state.peerConnection) {
+            const videoTrack = newStream.getVideoTracks()[0];
+            const audioTrack = newStream.getAudioTracks()[0];
+
+            state.peerConnection.getSenders().forEach(sender => {
+                if (sender.track?.kind === 'video' && videoTrack) {
+                    sender.replaceTrack(videoTrack);
+                }
+                if (sender.track?.kind === 'audio' && audioTrack) {
+                    sender.replaceTrack(audioTrack);
+                }
+            });
+        }
+
+        showNotification('Devices updated', 'success');
+    } catch (error) {
+        console.error('Error switching devices:', error);
+        showNotification('Error switching devices: ' + error.message, 'error');
     }
 }
 
