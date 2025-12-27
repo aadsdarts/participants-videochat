@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectator Lobby</title>
+    <link rel="stylesheet" href="spectator-lobby.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>Live Games</h1>
+                <p id="status" class="status">Loading live rooms…</p>
+            </div>
+            <button id="refreshBtn" class="btn">Refresh</button>
+        </header>
+
+        <main class="content">
+            <div id="liveList" class="live-list"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="spectator-lobby.js"></script>
+</body>
+</html>
