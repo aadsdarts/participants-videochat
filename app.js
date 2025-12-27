@@ -44,37 +44,45 @@ function setupDividerDrag() {
     const videoSection = document.querySelector('.video-section');
     const dartconnectSection = document.querySelector('.dartconnect-section');
     const content = document.querySelector('.content');
-    
+
+    if (!divider || !videoSection || !dartconnectSection || !content) {
+        console.error('Divider drag setup failed: missing elements');
+        return;
+    }
+
     let isDragging = false;
     let startX = 0;
     let startVideoWidth = 0;
-    
+
     divider.addEventListener('mousedown', (e) => {
         isDragging = true;
         startX = e.clientX;
         startVideoWidth = videoSection.offsetWidth;
+        divider.style.backgroundColor = '#007bff';
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
+        e.preventDefault();
     });
-    
+
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        
+
         const deltaX = e.clientX - startX;
         const contentWidth = content.offsetWidth;
         const newVideoWidth = startVideoWidth + deltaX;
         const videoPercent = (newVideoWidth / contentWidth) * 100;
-        
+
         // Constrain between 20% and 80%
         if (videoPercent >= 20 && videoPercent <= 80) {
             videoSection.style.flex = `0 0 ${videoPercent}%`;
             dartconnectSection.style.flex = `0 0 ${100 - videoPercent}%`;
         }
     });
-    
+
     document.addEventListener('mouseup', () => {
         if (isDragging) {
             isDragging = false;
+            divider.style.backgroundColor = '';
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
         }
