@@ -196,11 +196,11 @@ async function handleJoinRoom() {
         // Enable draggable local overlay
         await enumerateAndPopulateDevices();
 
-        // Setup Supabase Realtime channel
-        setupRealtimeChannel();
-
-        // Create or join room in database
+        // Decide initiator/joiner before connecting signaling
         await createOrJoinRoom();
+
+        // Now subscribe to signaling channel with correct initiator state
+        setupRealtimeChannel();
 
         showNotification('Connected to room. Waiting for other participant...', 'success');
     } catch (error) {
