@@ -52,8 +52,8 @@ async function handleJoinRoom() {
     try {
         roomStatus.textContent = `Room: ${roomCode} | User: ${name}`;
         setupModal.style.display = 'none';
-        shareBtn.style.display = 'inline-block';
-        endCallBtn.style.display = 'inline-block';
+        shareBtn.removeAttribute('hidden');
+        endCallBtn.removeAttribute('hidden');
 
         // Initialize local stream
         await initializeLocalStream();
@@ -91,7 +91,7 @@ async function initializeLocalStream() {
 
 // Setup Realtime channel
 function setupRealtimeChannel() {
-    state.channel = supabase.channel(`room-${state.roomCode}`, {
+    state.channel = supabaseClient.channel(`room-${state.roomCode}`, {
         config: {
             broadcast: { self: true },
             presence: { key: state.userName }
@@ -164,7 +164,7 @@ function setupRealtimeChannel() {
 // Create or join room in Supabase
 async function createOrJoinRoom() {
     try {
-        const { data: room, error } = await supabase
+        const { data: room, error } = await supabaseClient
             .from('rooms')
             .select('*')
             .eq('room_code', state.roomCode)
@@ -172,7 +172,7 @@ async function createOrJoinRoom() {
 
         if (error && error.code === 'PGRST116') {
             // Room doesn't exist, create it
-            const { data, error: insertError } = await supabase
+            const { data, error: insertError } = await supabaseClient
                 .from('rooms')
                 .insert([{
                     room_code: state.roomCode,
@@ -279,7 +279,7 @@ async function handleShareSpectatorLink() {
         state.spectatorToken = Math.random().toString(36).substring(2, 15);
 
         // Store in database
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('spectators')
             .insert([{
                 room_code: state.roomCode,
@@ -321,15 +321,15 @@ async function handleEndCall() {
 
     // Mark room as inactive
     if (state.roomCode) {
-        await supabase
+        await supabaseClient
             .from('rooms')
             .update({ is_active: false })
             .eq('room_code', state.roomCode);
     }
 
     setupModal.style.display = 'flex';
-    shareBtn.style.display = 'none';
-    endCallBtn.style.display = 'none';
+    shareBtn.setAttribute('hidden', '');
+    endCallBtn.setAttribute('hidden', '');
     roomStatus.textContent = 'Initializing...';
     nameInput.value = '';
     roomCodeInput.value = '';

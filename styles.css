@@ -206,6 +206,10 @@ video {
     font-weight: 500;
 }
 
+.btn[hidden] {
+    display: none;
+}
+
 .btn-primary {
     width: 100%;
     background: #0084ff;

@@ -13,8 +13,8 @@
             <h1>Video Chat Room</h1>
             <div class="room-info">
                 <p id="roomStatus">Initializing...</p>
-                <button id="shareBtn" class="btn" style="display: none;">Share Spectator Link</button>
-                <button id="endCallBtn" class="btn btn-danger" style="display: none;">End Call</button>
+                <button id="shareBtn" class="btn" hidden>Share Spectator Link</button>
+                <button id="endCallBtn" class="btn btn-danger" hidden>End Call</button>
             </div>
         </div>
 
@@ -40,7 +40,7 @@
 
             <!-- Right side: DartConnect -->
             <div class="dartconnect-section">
-                <iframe id="dartconnectFrame" src="https://dartconnect.com" title="DartConnect"></iframe>
+                <iframe id="dartconnectFrame" src="https://app.dartconnect.com/" title="DartConnect"></iframe>
             </div>
         </div>
 
@@ -56,7 +56,7 @@
                     <label for="roomCodeInput">Room Code:</label>
                     <input type="text" id="roomCodeInput" placeholder="Enter room code or leave blank to create" />
                 </div>
-                <button id="joinBtn" class="btn btn-primary">Join Room</button>
+                <button id="joinBtn" type="button" class="btn btn-primary">Join Room</button>
             </div>
         </div>
     </div>
