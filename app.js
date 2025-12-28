@@ -207,7 +207,18 @@ async function handleJoinRoom() {
         showNotification('Connected to room. Waiting for other participant...', 'success');
     } catch (error) {
         console.error('Error joining room:', error);
-        showNotification('Error joining room: ' + error.message, 'error');
+          
+          // Show modal again on error
+          setupModal.style.display = 'flex';
+          
+          // Provide user-friendly error
+          let errorMsg = 'Failed to join room. ';
+          if (error.name === 'NotReadableError') {
+              errorMsg += 'Your camera/microphone is in use by another application or tab. Please close other apps and try again.';
+          } else {
+              errorMsg += error.message;
+          }
+          showNotification(errorMsg, 'error');
     }
 }
 
@@ -722,6 +733,9 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
+
 
 
 
