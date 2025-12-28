@@ -587,6 +587,17 @@ flushPendingIceCandidates();
         console.log('Spectator token:', spectatorToken, 'My participantId:', state.participantId);
         console.log('Do I have localStream?', !!state.localStream, 'Video tracks:', state.localStream?.getVideoTracks().length);
         
+        // Check if we already have a connection for this spectator
+        if (!state.spectatorConnections) {
+            state.spectatorConnections = [];
+        }
+        
+        const existingConn = state.spectatorConnections.find(conn => conn.token === spectatorToken);
+        if (existingConn) {
+            console.log('⏭️ Already have connection for spectator token:', spectatorToken);
+            return;
+        }
+        
         // Send offer to spectator if we have local stream
         if (state.localStream) {
             await sendOfferToSpectator(spectatorToken);
@@ -836,12 +847,17 @@ async function sendOfferToSpectator(spectatorToken) {
         };
 
         spectatorPC.onconnectionstatechange = () => {
-            console.log('Spectator PC connection state:', spectatorPC.connectionState);
+            console.log('Spectator PC connection state:', spectatorPC.connectionState, 'token:', spectatorToken);
             if (spectatorPC.connectionState === 'failed' || spectatorPC.connectionState === 'disconnected') {
+                console.log('🔌 Spectator disconnected, cleaning up connection for token:', spectatorToken);
                 // Remove from connections array
                 if (state.spectatorConnections) {
-                    state.spectatorConnections = state.spectatorConnections.filter(conn => conn.pc !== spectatorPC);
+                    const before = state.spectatorConnections.length;
+                    state.spectatorConnections = state.spectatorConnections.filter(conn => conn.token !== spectatorToken);
+                    console.log(`Removed spectator connection. Had ${before}, now have ${state.spectatorConnections.length}`);
                 }
+            } else if (spectatorPC.connectionState === 'connected') {
+                console.log('✅ Spectator connected successfully, token:', spectatorToken);
             }
         };
 
