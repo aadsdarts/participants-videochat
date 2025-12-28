@@ -16,7 +16,7 @@
             </div>
             <h1>Video Chat Room</h1>
             <div class="room-info">
-                <p id="roomStatus">Initializing...</p>                <button id="reconnectBtn" class="btn btn-secondary" hidden>Reconnect</button>                <button id="toggleAudioBtn" class="btn btn-secondary" hidden>🔇 Mute</button>                <button id="toggleVideoBtn" class="btn btn-secondary" hidden>📹 Hide Video</button>                <button id="shareBtn" class="btn" hidden>Share Spectator Link</button>
+                <p id="roomStatus">Initializing...</p>                <button id="reconnectBtn" class="btn btn-secondary" hidden>Reconnect</button>                <button id="refreshBtn" class="btn btn-secondary" hidden>Refresh</button>                <button id="toggleAudioBtn" class="btn btn-secondary" hidden>🔇 Mute</button>                <button id="toggleVideoBtn" class="btn btn-secondary" hidden>📹 Hide Video</button>                <button id="shareBtn" class="btn" hidden>Share Spectator Link</button>
                 <button id="endCallBtn" class="btn btn-danger" hidden>End Call</button>
             </div>
             <div class="device-controls" id="deviceControls" hidden>
@@ -81,7 +81,7 @@
     <div id="notification" class="notification"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=1.2.0"></script>
+    <script src="supabase-config.js?v=1.2.1"></script>
         <script>
             // Ensure Supabase REST requests negotiate JSON
             (function(){
@@ -104,7 +104,7 @@
                 };
             })();
         </script>
-    <script src="app.js?v=1.2.0"></script>
+    <script src="app.js?v=1.2.1"></script>
 </body>
 </html>
 

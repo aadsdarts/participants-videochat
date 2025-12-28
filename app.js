@@ -33,9 +33,20 @@ const deviceControls = document.getElementById('deviceControls');
 const localVideoContainer = document.getElementById('localVideoContainer');
 const toggleAudioBtn = document.getElementById('toggleAudioBtn');
 const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+const refreshBtn = document.getElementById('refreshBtn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Check if returning from refresh
+    const savedRoomCode = sessionStorage.getItem('activeRoomCode');
+    if (savedRoomCode) {
+        roomCodeInput.value = savedRoomCode;
+        sessionStorage.removeItem('activeRoomCode');
+        // Auto-join the room
+        handleJoinRoom();
+        return;
+    }
+    
     setupModal.style.display = 'flex';
     joinBtn.addEventListener('click', handleJoinRoom);
     shareBtn.addEventListener('click', handleShareSpectatorLink);
@@ -43,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDevicesBtn.addEventListener('click', handleApplyDevices);
     toggleAudioBtn.addEventListener('click', handleToggleAudio);
     toggleVideoBtn.addEventListener('click', handleToggleVideo);
+    refreshBtn.addEventListener('click', handleRefresh);
     setupDividerDrag();
     setupLocalVideoDrag();
 });
@@ -256,12 +268,16 @@ async function handleJoinRoom() {
     }
 
     state.roomCode = roomCode;
+    
+    // Store room code for refresh functionality
+    sessionStorage.setItem('currentRoomCode', roomCode);
 
     try {
         roomStatus.textContent = `Room: ${roomCode}`;
         setupModal.style.display = 'none';
         shareBtn.removeAttribute('hidden');
         endCallBtn.removeAttribute('hidden');
+        refreshBtn.removeAttribute('hidden');
         toggleAudioBtn.removeAttribute('hidden');
         toggleVideoBtn.removeAttribute('hidden');
         deviceControls.removeAttribute('hidden');
@@ -858,9 +874,14 @@ async function handleEndCall() {
             .eq('room_code', state.roomCode);
     }
 
+    // Clear session storage
+    sessionStorage.removeItem('currentRoomCode');
+    sessionStorage.removeItem('activeRoomCode');
+
     setupModal.style.display = 'flex';
     shareBtn.setAttribute('hidden', '');
     endCallBtn.setAttribute('hidden', '');
+    refreshBtn.setAttribute('hidden', '');
     toggleAudioBtn.setAttribute('hidden', '');
     toggleVideoBtn.setAttribute('hidden', '');
     roomStatus.textContent = 'Initializing...';
@@ -894,6 +915,14 @@ function handleToggleVideo() {
         toggleVideoBtn.textContent = videoTrack.enabled ? 'ðŸ“¹ Hide Video' : 'ðŸ“¹ Show Video';
         localVideo.style.opacity = videoTrack.enabled ? '1' : '0.3';
         showNotification(videoTrack.enabled ? 'Camera enabled' : 'Camera disabled', 'info');
+    }
+}
+
+// Handle refresh - rejoin same room
+function handleRefresh() {
+    if (state.roomCode) {
+        sessionStorage.setItem('activeRoomCode', state.roomCode);
+        window.location.reload();
     }
 }
 
