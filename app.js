@@ -172,10 +172,32 @@ function sanitizeRoomCode(code) {
         .slice(0, 4);
     }
 
-// Create or join a room - announce to lobby via broadcast
+// Create or join a room - both database AND broadcast
 async function createOrJoinRoom() {
     try {
-        console.log('Joining room:', state.roomCode);
+        console.log('Creating room in database:', state.roomCode);
+        
+        const now = new Date().toISOString();
+        const { data, error } = await supabaseClient
+            .from('rooms')
+            .upsert({
+                room_code: state.roomCode,
+                created_at: now,
+                updated_at: now,
+                is_active: true
+            }, {
+                onConflict: 'room_code',
+                ignoreDuplicates: false
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('❌ Room creation failed:', error);
+        } else {
+            console.log('✅ Room created in database:', data);
+        }
+        
         state.isInitiator = true;
     } catch (error) {
         console.error('Error in createOrJoinRoom:', error);
