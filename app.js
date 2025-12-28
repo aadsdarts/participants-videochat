@@ -753,9 +753,6 @@ async function sendOfferToSpectator() {
     } catch (error) {
         console.error('❌ Error sending offer to spectator:', error);
     }
-}    } catch (error) {
-        console.error('Error creating offer:', error);
-    }
 }
 
 // Update connection status
