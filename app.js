@@ -481,28 +481,28 @@ flushPendingIceCandidates();
     });
 
     // Also support spectator-specific answers
-        state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-            console.log('Received spectator answer');
-            const answer = payload.payload.answer;
-
-            if (!state.peerConnection) return;
-
-            if (state.receivedAnswer) {
-                console.warn('Ignore duplicate spectator answer');
-                return;
+    state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
+        console.log('📺 Received spectator answer');
+        const answer = payload.payload.answer;
+        
+        // Find the most recent spectator connection that's in the right state
+        if (state.spectatorConnections && state.spectatorConnections.length > 0) {
+            const spectatorPC = state.spectatorConnections[state.spectatorConnections.length - 1];
+            
+            if (spectatorPC.signalingState === 'have-local-offer') {
+                try {
+                    await spectatorPC.setRemoteDescription(new RTCSessionDescription(answer));
+                    console.log('✅ Spectator connection established');
+                } catch (error) {
+                    console.error('Error setting spectator answer:', error);
+                }
+            } else {
+                console.warn('Spectator PC not in correct state:', spectatorPC.signalingState);
             }
-
-            if (state.peerConnection.signalingState !== 'have-local-offer') {
-                console.warn('Ignore spectator answer: PC not in have-local-offer');
-                return;
-            }
-
-        await state.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        // Flush buffered ICE after remote description is set
-        state.remoteDescriptionSet = true;
-        flushPendingIceCandidates();
-        state.receivedAnswer = true;
-        });
+        } else {
+            console.warn('No spectator connections available');
+        }
+    });
 
     // Listen for ICE candidates
     state.channel.on('broadcast', { event: 'ice-candidate' }, async (payload) => {
@@ -517,6 +517,18 @@ flushPendingIceCandidates();
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (error) {
             console.error('Error adding ICE candidate:', error);
+        }
+    });
+
+    // Listen for spectator ready event
+    state.channel.on('broadcast', { event: 'spectator-ready' }, async (payload) => {
+        console.log('🎥 Spectator joined, sending offer:', payload.payload);
+        
+        // Send offer to spectator if we have local stream
+        if (state.localStream) {
+            await sendOfferToSpectator();
+        } else {
+            console.warn('No local stream available to send to spectator');
         }
     });
 
@@ -686,8 +698,62 @@ async function createOffer() {
             payload: { offer: state.peerConnection.localDescription }
         });
 
-        showNotification('Waiting for other participant to accept...', 'success');
+        showNotification('Waiting for other participant to accept...', 'success');    } catch (error) {
+        console.error('Error creating offer:', error);
+    }
+}
+
+// Send offer to spectator
+async function sendOfferToSpectator() {
+    try {
+        console.log('📹 Creating offer for spectator...');
+        
+        // Create a new peer connection for spectator
+        const spectatorPC = new RTCPeerConnection(RTCConfig);
+        
+        // Add local stream tracks to spectator connection
+        state.localStream.getTracks().forEach(track => {
+            spectatorPC.addTrack(track, state.localStream);
+            console.log('Added track to spectator PC:', track.kind);
+        });
+
+        // Handle ICE candidates for spectator
+        spectatorPC.onicecandidate = (event) => {
+            if (event.candidate) {
+                state.channel.send({
+                    type: 'broadcast',
+                    event: 'ice-candidate',
+                    payload: { candidate: event.candidate }
+                });
+            }
+        };
+
+        spectatorPC.onconnectionstatechange = () => {
+            console.log('Spectator PC connection state:', spectatorPC.connectionState);
+        };
+
+        // Create and send offer
+        const offer = await spectatorPC.createOffer();
+        await spectatorPC.setLocalDescription(offer);
+
+        state.channel.send({
+            type: 'broadcast',
+            event: 'offer',
+            payload: { offer: spectatorPC.localDescription }
+        });
+
+        console.log('✅ Offer sent to spectator');
+        
+        // Store spectator PC (you might want to manage multiple spectators)
+        if (!state.spectatorConnections) {
+            state.spectatorConnections = [];
+        }
+        state.spectatorConnections.push(spectatorPC);
+        
     } catch (error) {
+        console.error('❌ Error sending offer to spectator:', error);
+    }
+}    } catch (error) {
         console.error('Error creating offer:', error);
     }
 }
