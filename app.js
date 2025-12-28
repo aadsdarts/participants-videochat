@@ -547,7 +547,11 @@ async function createOrJoinRoom() {
                 }])
                 .select();
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('Room creation failed:', insertError);
+                throw insertError;
+            }
+            console.log('Room created successfully:', data);
             state.isInitiator = true;
             state.isPolite = false;
             state.isPolite = false;
@@ -773,6 +777,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
