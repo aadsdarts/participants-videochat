@@ -210,64 +210,46 @@ function stopHeartbeat() {
     }
 }
 
-// Create or join a room in the database
+// Create or join a room - announce to lobby via broadcast
 async function createOrJoinRoom() {
     try {
-        console.log('=== CREATE OR JOIN ROOM ===');
-        console.log('Room code:', state.roomCode);
+        console.log('Joining room:', state.roomCode);
         
-        // Use upsert to create or update room - this is bulletproof
-        const now = new Date().toISOString();
-        console.log('Timestamp:', now);
+        // Create a lobby channel to announce room existence
+        const lobbyChannel = supabaseClient.channel('lobby-broadcast');
         
-        const roomData = {
-            room_code: state.roomCode,
-            created_at: now,
-            updated_at: now,
-            is_active: true
-        };
-        console.log('Attempting to upsert:', roomData);
+        lobbyChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // Announce this room exists
+                await lobbyChannel.send({
+                    type: 'broadcast',
+                    event: 'room-active',
+                    payload: { 
+                        room_code: state.roomCode,
+                        timestamp: Date.now()
+                    }
+                });
+                console.log('✅ Room announced to lobby');
+            }
+        });
         
-        const { data, error } = await supabaseClient
-            .from('rooms')
-            .upsert(roomData, {
-                onConflict: 'room_code',
-                ignoreDuplicates: false
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('❌ Room upsert FAILED:', error);
-            console.error('Error code:', error.code);
-            console.error('Error message:', error.message);
-            console.error('Error details:', JSON.stringify(error));
-            // Don't throw - room might already exist, which is fine
-            // Just determine if we're initiator based on channel presence
-            state.isInitiator = false;
-        } else {
-            console.log('✅ Room upserted successfully!');
-            console.log('Returned data:', data);
-            // First to upsert is initiator
-            state.isInitiator = true;
-        }
+        // Keep announcing every 5 seconds so lobby stays updated
+        setInterval(async () => {
+            if (state.roomCode && lobbyChannel) {
+                await lobbyChannel.send({
+                    type: 'broadcast',
+                    event: 'room-active',
+                    payload: { 
+                        room_code: state.roomCode,
+                        timestamp: Date.now()
+                    }
+                });
+            }
+        }, 5000);
         
-        // Verify the room is actually in the database
-        console.log('Verifying room in database...');
-        const { data: verifyData, error: verifyError } = await supabaseClient
-            .from('rooms')
-            .select('*')
-            .eq('room_code', state.roomCode)
-            .single();
-            
-        if (verifyError) {
-            console.error('❌ Room verification FAILED:', verifyError);
-        } else {
-            console.log('✅ Room verified in database:', verifyData);
-        }
+        state.isInitiator = true; // Simplified
     } catch (error) {
-        console.error('❌ Exception in createOrJoinRoom:', error);
-        // Don't throw - allow connection to proceed
+        console.error('Error in createOrJoinRoom:', error);
         state.isInitiator = false;
     }
 }
