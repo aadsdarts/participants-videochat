@@ -4,6 +4,7 @@ let state = {
     localStream: null,
     peerConnection: null,
     channel: null,
+    lobbyChannel: null,
     isInitiator: false,
     remoteStream: null,
     spectatorToken: null,
@@ -175,44 +176,51 @@ function sanitizeRoomCode(code) {
 async function createOrJoinRoom() {
     try {
         console.log('Joining room:', state.roomCode);
-        
-        // Create a lobby channel to announce room existence
-        const lobbyChannel = supabaseClient.channel('lobby-broadcast');
-        
-        lobbyChannel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                // Announce this room exists
-                await lobbyChannel.send({
-                    type: 'broadcast',
-                    event: 'room-active',
-                    payload: { 
-                        room_code: state.roomCode,
-                        timestamp: Date.now()
-                    }
-                });
-                console.log('✅ Room announced to lobby');
-            }
-        });
-        
-        // Keep announcing every 5 seconds so lobby stays updated
-        setInterval(async () => {
-            if (state.roomCode && lobbyChannel) {
-                await lobbyChannel.send({
-                    type: 'broadcast',
-                    event: 'room-active',
-                    payload: { 
-                        room_code: state.roomCode,
-                        timestamp: Date.now()
-                    }
-                });
-            }
-        }, 5000);
-        
-        state.isInitiator = true; // Simplified
+        state.isInitiator = true;
     } catch (error) {
         console.error('Error in createOrJoinRoom:', error);
         state.isInitiator = false;
     }
+}
+
+// Start announcing room to lobby
+function startLobbyBroadcast() {
+    console.log('Starting lobby broadcast for room:', state.roomCode);
+    
+    // Create lobby channel
+    state.lobbyChannel = supabaseClient.channel('lobby-broadcast');
+    
+    state.lobbyChannel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+            console.log('✅ Lobby channel subscribed');
+            
+            // Send initial broadcast
+            await state.lobbyChannel.send({
+                type: 'broadcast',
+                event: 'room-active',
+                payload: { 
+                    room_code: state.roomCode,
+                    timestamp: Date.now()
+                }
+            });
+            console.log('✅ Initial room broadcast sent');
+        }
+    });
+    
+    // Keep announcing every 5 seconds
+    setInterval(async () => {
+        if (state.roomCode && state.lobbyChannel) {
+            await state.lobbyChannel.send({
+                type: 'broadcast',
+                event: 'room-active',
+                payload: { 
+                    room_code: state.roomCode,
+                    timestamp: Date.now()
+                }
+            });
+            console.log('📡 Room broadcast sent:', state.roomCode);
+        }
+    }, 5000);
 }
 
 async function handleJoinRoom() {
@@ -247,7 +255,9 @@ async function handleJoinRoom() {
         // Now subscribe to signaling channel with correct initiator state
         
         setupRealtimeChannel();
-        // Heartbeat removed - using broadcast instead
+        
+        // Start broadcasting to lobby
+        startLobbyBroadcast();
 
         showNotification('Connected to room. Waiting for other participant...', 'success');
     } catch (error) {
