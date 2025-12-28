@@ -532,6 +532,21 @@ flushPendingIceCandidates();
         }
     });
 
+    // Listen for spectator ICE candidates
+    state.channel.on('broadcast', { event: 'spectator-ice' }, async (payload) => {
+        const candidate = payload.payload.candidate;
+        
+        if (candidate && state.spectatorConnections && state.spectatorConnections.length > 0) {
+            const spectatorPC = state.spectatorConnections[state.spectatorConnections.length - 1];
+            try {
+                await spectatorPC.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log('✅ Added spectator ICE candidate');
+            } catch (error) {
+                console.error('Error adding spectator ICE candidate:', error);
+            }
+        }
+    });
+
     // Listen for presence changes
     state.channel.on('presence', { event: 'sync' }, () => {
         const presenceState = state.channel.presenceState();
