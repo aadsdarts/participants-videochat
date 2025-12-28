@@ -498,16 +498,18 @@ flushPendingIceCandidates();
 
     // Also support spectator-specific answers
     state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
-        console.log('📺 Received spectator answer');
+        console.log('📺 Received spectator answer', payload.payload);
         const answer = payload.payload.answer;
         const participantId = payload.payload.participantId;
         
         // Match answer to the correct spectator connection
         if (state.spectatorConnections && state.spectatorConnections.length > 0) {
-            const spectatorPC = state.spectatorConnections[state.spectatorConnections.length - 1];
+            const spectatorConn = state.spectatorConnections[state.spectatorConnections.length - 1];
+            const spectatorPC = spectatorConn.pc || spectatorConn; // Handle both old and new format
             
             // Only process if this answer is for us
             if (!participantId || participantId === state.participantId) {
+                console.log('Processing answer for this participant. PC state:', spectatorPC.signalingState);
                 if (spectatorPC.signalingState === 'have-local-offer') {
                     try {
                         await spectatorPC.setRemoteDescription(new RTCSessionDescription(answer));
@@ -546,17 +548,8 @@ flushPendingIceCandidates();
     state.channel.on('broadcast', { event: 'spectator-ready' }, async (payload) => {
         console.log('🎥 Spectator joined, sending offer:', payload.payload);
         
-        // Prevent multiple connections to same spectator
         const spectatorToken = payload.payload?.token;
-        
-        // Check if we already have a connection for this spectator
-        if (spectatorToken && state.spectatorConnections) {
-            const existingConnection = state.spectatorConnections.find(conn => conn.token === spectatorToken);
-            if (existingConnection) {
-                console.log('⚠️ Spectator already connected, ignoring duplicate ready event');
-                return;
-            }
-        }
+        console.log('Spectator token:', spectatorToken);
         
         // Send offer to spectator if we have local stream
         if (state.localStream) {
@@ -571,7 +564,8 @@ flushPendingIceCandidates();
         const candidate = payload.payload.candidate;
         
         if (candidate && state.spectatorConnections && state.spectatorConnections.length > 0) {
-            const spectatorPC = state.spectatorConnections[state.spectatorConnections.length - 1];
+            const spectatorConn = state.spectatorConnections[state.spectatorConnections.length - 1];
+            const spectatorPC = spectatorConn.pc || spectatorConn; // Handle both old and new format
             try {
                 await spectatorPC.addIceCandidate(new RTCIceCandidate(candidate));
                 console.log('✅ Added spectator ICE candidate');
