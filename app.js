@@ -20,6 +20,7 @@ const setupModal = document.getElementById('setupModal');
 const joinBtn = document.getElementById('joinBtn');
 const shareBtn = document.getElementById('shareBtn');
 const endCallBtn = document.getElementById('endCallBtn');
+const reconnectBtn = document.getElementById('reconnectBtn');
 const roomStatus = document.getElementById('roomStatus');
 const notification = document.getElementById('notification');
 const connectionStatus = document.getElementById('connectionStatus');
@@ -721,6 +722,8 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
 
 
 
