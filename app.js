@@ -419,6 +419,25 @@ async function handleApplyDevices() {
                 }
             });
         }
+        
+        // Also replace tracks in spectator connections
+        if (state.spectatorConnections && state.spectatorConnections.length > 0) {
+            const videoTrack = newStream.getVideoTracks()[0];
+            const audioTrack = newStream.getAudioTracks()[0];
+            
+            state.spectatorConnections.forEach(conn => {
+                const pc = conn.pc || conn;
+                pc.getSenders().forEach(sender => {
+                    if (sender.track?.kind === 'video' && videoTrack) {
+                        sender.replaceTrack(videoTrack);
+                    }
+                    if (sender.track?.kind === 'audio' && audioTrack) {
+                        sender.replaceTrack(audioTrack);
+                    }
+                });
+            });
+            console.log('✅ Updated tracks for', state.spectatorConnections.length, 'spectator connections');
+        }
 
         showNotification('Devices updated', 'success');
     } catch (error) {
@@ -436,10 +455,18 @@ function setupRealtimeChannel() {
         }
     });
 
-    // Listen for SDP offers
+    // Listen for SDP offers (participant-to-participant only)
     state.channel.on('broadcast', { event: 'offer' }, async (payload) => {
-        console.log('Received offer');
         const offer = payload.payload.offer;
+        const participantId = payload.payload.participantId;
+        
+        // CRITICAL: Ignore offers with participantId - those are for spectators only
+        if (participantId) {
+            console.log('⏭️ Ignoring offer meant for spectator (participantId:', participantId + ')');
+            return;
+        }
+        
+        console.log('📞 Received participant-to-participant offer');
 
         if (!state.peerConnection) {
             await createPeerConnection();
