@@ -546,9 +546,21 @@ flushPendingIceCandidates();
     state.channel.on('broadcast', { event: 'spectator-ready' }, async (payload) => {
         console.log('🎥 Spectator joined, sending offer:', payload.payload);
         
+        // Prevent multiple connections to same spectator
+        const spectatorToken = payload.payload?.token;
+        
+        // Check if we already have a connection for this spectator
+        if (spectatorToken && state.spectatorConnections) {
+            const existingConnection = state.spectatorConnections.find(conn => conn.token === spectatorToken);
+            if (existingConnection) {
+                console.log('⚠️ Spectator already connected, ignoring duplicate ready event');
+                return;
+            }
+        }
+        
         // Send offer to spectator if we have local stream
         if (state.localStream) {
-            await sendOfferToSpectator();
+            await sendOfferToSpectator(spectatorToken);
         } else {
             console.warn('No local stream available to send to spectator');
         }
@@ -741,7 +753,7 @@ async function createOffer() {
 }
 
 // Send offer to spectator
-async function sendOfferToSpectator() {
+async function sendOfferToSpectator(spectatorToken) {
     try {
         console.log('📹 Creating offer for spectator...');
         
@@ -751,8 +763,7 @@ async function sendOfferToSpectator() {
         // Create a new peer connection for spectator
         const spectatorPC = new RTCPeerConnection(RTCConfig);
         
-        // Clone tracks to prevent interference with existing connections
-        // Use the original tracks but don't stop them
+        // Get tracks but don't modify the stream
         const videoTrack = state.localStream.getVideoTracks()[0];
         const audioTrack = state.localStream.getAudioTracks()[0];
         
@@ -781,6 +792,12 @@ async function sendOfferToSpectator() {
 
         spectatorPC.onconnectionstatechange = () => {
             console.log('Spectator PC connection state:', spectatorPC.connectionState);
+            if (spectatorPC.connectionState === 'failed' || spectatorPC.connectionState === 'disconnected') {
+                // Remove from connections array
+                if (state.spectatorConnections) {
+                    state.spectatorConnections = state.spectatorConnections.filter(conn => conn.pc !== spectatorPC);
+                }
+            }
         };
 
         // Create and send offer
@@ -798,21 +815,15 @@ async function sendOfferToSpectator() {
 
         console.log('✅ Offer sent to spectator from participant:', participantId);
         
-        // Store spectator PC (you might want to manage multiple spectators)
+        // Store spectator PC with token for tracking
         if (!state.spectatorConnections) {
             state.spectatorConnections = [];
         }
-        state.spectatorConnections.push(spectatorPC);
-        
-        // Final check: Ensure local video continues to display
-        // Double-check after all operations complete
-        setTimeout(() => {
-            if (localVideo.srcObject !== state.localStream) {
-                console.log('🔧 Final check: Re-attaching local video stream');
-                localVideo.srcObject = state.localStream;
-                localVideo.play().catch(e => console.log('Local video play prevented:', e));
-            }
-        }, 100);
+        state.spectatorConnections.push({
+            pc: spectatorPC,
+            token: spectatorToken,
+            participantId: participantId
+        });
         
     } catch (error) {
         console.error('❌ Error sending offer to spectator:', error);
