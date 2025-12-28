@@ -180,13 +180,21 @@ function startHeartbeat() {
     heartbeatInterval = setInterval(async () => {
         if (state.roomCode) {
             try {
-                await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('rooms')
-                    .update({ 
+                    .update({
                         updated_at: new Date().toISOString(),
-                        is_active: true 
+                        is_active: true
                     })
-                    .eq('room_code', state.roomCode);
+                    .eq('room_code', state.roomCode)
+                    .select();
+                if (error) {
+                    console.error('Heartbeat update failed:', error);
+                } else if (!data || data.length === 0) {
+                    console.error('Heartbeat: Room not found in database!', state.roomCode);
+                } else {
+                    console.log('Heartbeat sent for room', state.roomCode);
+                }
                 console.log('Heartbeat sent for room', state.roomCode);
             } catch (err) {
                 console.error('Heartbeat failed:', err);
@@ -765,6 +773,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
