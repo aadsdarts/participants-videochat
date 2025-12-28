@@ -172,6 +172,35 @@ function sanitizeRoomCode(code) {
     }
 
 // Handle room join
+// Heartbeat mechanism to keep room alive
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+    // Update room timestamp every 30 seconds
+    heartbeatInterval = setInterval(async () => {
+        if (state.roomCode) {
+            try {
+                await supabaseClient
+                    .from('rooms')
+                    .update({ 
+                        updated_at: new Date().toISOString(),
+                        is_active: true 
+                    })
+                    .eq('room_code', state.roomCode);
+                console.log('Heartbeat sent for room', state.roomCode);
+            } catch (err) {
+                console.error('Heartbeat failed:', err);
+            }
+        }
+    }, 30000); // Every 30 seconds
+}
+
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+}
 async function handleJoinRoom() {
     const rawCode = (roomCodeInput.value || '').trim();
     const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
@@ -733,6 +762,10 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
+
+
 
 
 
