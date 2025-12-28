@@ -1,4 +1,4 @@
-// State Management
+﻿// State Management
 let state = {
     roomCode: null,
     localStream: null,
@@ -79,11 +79,11 @@ function setupDividerDrag() {
         const newVideoWidth = startVideoWidth + deltaX;
         const videoPercent = (newVideoWidth / contentWidth) * 100;
 
-        // Constrain between 20% and 80%
-        if (videoPercent >= 20 && videoPercent <= 80) {
-            videoSection.style.flex = `0 0 ${videoPercent}%`;
-            dartconnectSection.style.flex = `0 0 ${100 - videoPercent}%`;
-        }
+        // Clamp between 20% and 80%
+        const clampedPercent = Math.max(20, Math.min(80, videoPercent));
+        videoSection.style.flex = `0 0 ${clampedPercent}%`;
+        dartconnectSection.style.flex = `0 0 ${100 - clampedPercent}%`;
+
     });
 
     document.addEventListener('mouseup', () => {
@@ -694,7 +694,7 @@ function handleToggleAudio() {
     const audioTrack = state.localStream.getAudioTracks()[0];
     if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        toggleAudioBtn.textContent = audioTrack.enabled ? '🔇 Mute' : '🔊 Unmute';
+        toggleAudioBtn.textContent = audioTrack.enabled ? 'ðŸ”‡ Mute' : 'ðŸ”Š Unmute';
         showNotification(audioTrack.enabled ? 'Microphone unmuted' : 'Microphone muted', 'info');
     }
 }
@@ -706,7 +706,7 @@ function handleToggleVideo() {
     const videoTrack = state.localStream.getVideoTracks()[0];
     if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
-        toggleVideoBtn.textContent = videoTrack.enabled ? '📹 Hide Video' : '📹 Show Video';
+        toggleVideoBtn.textContent = videoTrack.enabled ? 'ðŸ“¹ Hide Video' : 'ðŸ“¹ Show Video';
         localVideo.style.opacity = videoTrack.enabled ? '1' : '0.3';
         showNotification(videoTrack.enabled ? 'Camera enabled' : 'Camera disabled', 'info');
     }
@@ -721,6 +721,8 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
 
 
 
