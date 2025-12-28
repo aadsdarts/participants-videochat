@@ -72,15 +72,12 @@ async function handleWatch(roomCode) {
     try {
         statusEl.textContent = `Joining room ${roomCode}…`;
         const token = Math.random().toString(36).substring(2, 12);
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         const { error } = await supabaseClient
             .from('spectators')
             .insert([{
                 room_code: roomCode,
-                spectator_token: token,
-                created_at: new Date(),
-                expires_at: expiresAt
+                token: token
             }]);
 
         if (error) throw error;

@@ -737,7 +737,7 @@ async function sendOfferToSpectator() {
             if (event.candidate) {
                 state.channel.send({
                     type: 'broadcast',
-                    event: 'ice-candidate',
+                    event: 'participant-ice',
                     payload: { candidate: event.candidate }
                 });
             }
@@ -801,14 +801,12 @@ async function handleShareSpectatorLink() {
             .from('spectators')
             .insert([{
                 room_code: state.roomCode,
-                spectator_token: state.spectatorToken,
-                created_at: new Date().toISOString(),
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hour expiry
+                token: state.spectatorToken
             }]);
 
         if (error) throw error;
 
-        const spectatorUrl = `${window.location.origin.replace('participants', 'spectators')}?roomCode=${state.roomCode}&token=${state.spectatorToken}`;
+        const spectatorUrl = `${window.location.origin}/spectators-videochat/viewer.html?roomCode=${state.roomCode}&token=${state.spectatorToken}`;
 
         // Copy to clipboard
         await navigator.clipboard.writeText(spectatorUrl);
