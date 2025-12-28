@@ -532,7 +532,7 @@ async function createOrJoinRoom() {
                 .insert([{
                     room_code: state.roomCode,
                     created_at: new Date(),
-                    is_active: true
+                    is_active: true,`n                    updated_at: new Date().toISOString()
                 }])
                 .select();
 
@@ -762,6 +762,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
