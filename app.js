@@ -209,6 +209,56 @@ function stopHeartbeat() {
         heartbeatInterval = null;
     }
 }
+
+// Create or join a room in the database
+async function createOrJoinRoom() {
+    try {
+        // First, check if room exists
+        const { data: existingRoom, error: fetchError } = await supabaseClient
+            .from('rooms')
+            .select('*')
+            .eq('room_code', state.roomCode)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
+            console.error('Error checking for existing room:', fetchError);
+            throw fetchError;
+        }
+
+        if (existingRoom) {
+            // Room exists, join as second participant
+            state.isInitiator = false;
+            console.log('Joining existing room:', state.roomCode);
+        } else {
+            // Room doesn't exist, create it
+            state.isInitiator = true;
+            console.log('Creating new room:', state.roomCode);
+            
+            const now = new Date().toISOString();
+            const { data: newRoom, error: createError } = await supabaseClient
+                .from('rooms')
+                .insert({
+                    room_code: state.roomCode,
+                    created_at: now,
+                    updated_at: now,
+                    is_active: true
+                })
+                .select()
+                .single();
+
+            if (createError) {
+                console.error('Room creation failed:', createError);
+                throw createError;
+            } else {
+                console.log('Room created successfully:', newRoom);
+            }
+        }
+    } catch (error) {
+        console.error('Error in createOrJoinRoom:', error);
+        throw error;
+    }
+}
+
 async function handleJoinRoom() {
     const rawCode = (roomCodeInput.value || '').trim();
     const roomCode = rawCode ? sanitizeRoomCode(rawCode) : generateRoomCode();
