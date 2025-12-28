@@ -756,6 +756,15 @@ async function sendOfferToSpectator() {
             spectatorPC.addTrack(track, state.localStream);
             console.log('Added track to spectator PC:', track.kind);
         });
+        
+        // Immediately ensure local video remains attached and playing
+        // This prevents the local video from going black when sharing to spectators
+        if (localVideo.srcObject !== state.localStream) {
+            console.log('🔧 Re-attaching local video stream after adding tracks');
+            localVideo.srcObject = state.localStream;
+        }
+        // Ensure video continues playing
+        localVideo.play().catch(e => console.log('Local video play prevented:', e));
 
         // Handle ICE candidates for spectator
         spectatorPC.onicecandidate = (event) => {
@@ -796,12 +805,15 @@ async function sendOfferToSpectator() {
         }
         state.spectatorConnections.push(spectatorPC);
         
-        // Ensure local video continues to display
-        // This fixes an issue where creating a new peer connection causes local video to disappear
-        if (localVideo.srcObject !== state.localStream) {
-            console.log('🔧 Re-attaching local video stream');
-            localVideo.srcObject = state.localStream;
-        }
+        // Final check: Ensure local video continues to display
+        // Double-check after all operations complete
+        setTimeout(() => {
+            if (localVideo.srcObject !== state.localStream) {
+                console.log('🔧 Final check: Re-attaching local video stream');
+                localVideo.srcObject = state.localStream;
+                localVideo.play().catch(e => console.log('Local video play prevented:', e));
+            }
+        }, 100);
         
     } catch (error) {
         console.error('❌ Error sending offer to spectator:', error);
