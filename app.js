@@ -751,20 +751,19 @@ async function sendOfferToSpectator() {
         // Create a new peer connection for spectator
         const spectatorPC = new RTCPeerConnection(RTCConfig);
         
-        // Add local stream tracks to spectator connection
-        state.localStream.getTracks().forEach(track => {
-            spectatorPC.addTrack(track, state.localStream);
-            console.log('Added track to spectator PC:', track.kind);
-        });
+        // Clone tracks to prevent interference with existing connections
+        // Use the original tracks but don't stop them
+        const videoTrack = state.localStream.getVideoTracks()[0];
+        const audioTrack = state.localStream.getAudioTracks()[0];
         
-        // Immediately ensure local video remains attached and playing
-        // This prevents the local video from going black when sharing to spectators
-        if (localVideo.srcObject !== state.localStream) {
-            console.log('🔧 Re-attaching local video stream after adding tracks');
-            localVideo.srcObject = state.localStream;
+        if (videoTrack) {
+            spectatorPC.addTrack(videoTrack, state.localStream);
+            console.log('Added video track to spectator PC');
         }
-        // Ensure video continues playing
-        localVideo.play().catch(e => console.log('Local video play prevented:', e));
+        if (audioTrack) {
+            spectatorPC.addTrack(audioTrack, state.localStream);
+            console.log('Added audio track to spectator PC');
+        }
 
         // Handle ICE candidates for spectator
         spectatorPC.onicecandidate = (event) => {
