@@ -192,7 +192,7 @@ function startHeartbeat() {
                 console.error('Heartbeat failed:', err);
             }
         }
-    }, 30000); // Every 30 seconds
+    }, 10000); // Every 10 seconds
 }
 
 function stopHeartbeat() {
@@ -762,6 +762,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
