@@ -541,7 +541,7 @@ async function createOrJoinRoom() {
                 .from('rooms')
                 .insert([{
                     room_code: state.roomCode,
-                    created_at: new Date(),
+                    created_at: new Date().toISOString(),
                     is_active: true,
                     updated_at: new Date().toISOString()
                 }])
@@ -686,7 +686,7 @@ async function handleShareSpectatorLink() {
             .insert([{
                 room_code: state.roomCode,
                 spectator_token: state.spectatorToken,
-                created_at: new Date(),
+                created_at: new Date().toISOString(),
                 expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hour expiry
             }]);
 
@@ -777,6 +777,7 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
 
 
 
