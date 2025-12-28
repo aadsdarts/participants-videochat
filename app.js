@@ -585,12 +585,6 @@ flushPendingIceCandidates();
             console.warn('❌ No local stream available to send to spectator');
         }
     });
-        if (state.localStream) {
-            await sendOfferToSpectator(spectatorToken);
-        } else {
-            console.warn('No local stream available to send to spectator');
-        }
-    });
 
     // Listen for spectator ICE candidates
     state.channel.on('broadcast', { event: 'spectator-ice' }, async (payload) => {
