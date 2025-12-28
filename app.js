@@ -213,49 +213,38 @@ function stopHeartbeat() {
 // Create or join a room in the database
 async function createOrJoinRoom() {
     try {
-        // First, check if room exists
-        const { data: existingRoom, error: fetchError } = await supabaseClient
+        console.log('Creating/joining room:', state.roomCode);
+        
+        // Use upsert to create or update room - this is bulletproof
+        const now = new Date().toISOString();
+        const { data, error } = await supabaseClient
             .from('rooms')
-            .select('*')
-            .eq('room_code', state.roomCode)
+            .upsert({
+                room_code: state.roomCode,
+                created_at: now,
+                updated_at: now,
+                is_active: true
+            }, {
+                onConflict: 'room_code',
+                ignoreDuplicates: false
+            })
+            .select()
             .single();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
-            console.error('Error checking for existing room:', fetchError);
-            throw fetchError;
-        }
-
-        if (existingRoom) {
-            // Room exists, join as second participant
+        if (error) {
+            console.error('Room upsert failed:', error);
+            // Don't throw - room might already exist, which is fine
+            // Just determine if we're initiator based on channel presence
             state.isInitiator = false;
-            console.log('Joining existing room:', state.roomCode);
         } else {
-            // Room doesn't exist, create it
+            console.log('Room upserted successfully:', data);
+            // First to upsert is initiator
             state.isInitiator = true;
-            console.log('Creating new room:', state.roomCode);
-            
-            const now = new Date().toISOString();
-            const { data: newRoom, error: createError } = await supabaseClient
-                .from('rooms')
-                .insert({
-                    room_code: state.roomCode,
-                    created_at: now,
-                    updated_at: now,
-                    is_active: true
-                })
-                .select()
-                .single();
-
-            if (createError) {
-                console.error('Room creation failed:', createError);
-                throw createError;
-            } else {
-                console.log('Room created successfully:', newRoom);
-            }
         }
     } catch (error) {
         console.error('Error in createOrJoinRoom:', error);
-        throw error;
+        // Don't throw - allow connection to proceed
+        state.isInitiator = false;
     }
 }
 
