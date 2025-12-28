@@ -575,9 +575,16 @@ flushPendingIceCandidates();
         console.log('🎥 Spectator joined, sending offer:', payload.payload);
         
         const spectatorToken = payload.payload?.token;
-        console.log('Spectator token:', spectatorToken);
+        console.log('Spectator token:', spectatorToken, 'My participantId:', state.participantId);
+        console.log('Do I have localStream?', !!state.localStream, 'Video tracks:', state.localStream?.getVideoTracks().length);
         
         // Send offer to spectator if we have local stream
+        if (state.localStream) {
+            await sendOfferToSpectator(spectatorToken);
+        } else {
+            console.warn('❌ No local stream available to send to spectator');
+        }
+    });
         if (state.localStream) {
             await sendOfferToSpectator(spectatorToken);
         } else {
