@@ -484,20 +484,26 @@ flushPendingIceCandidates();
     state.channel.on('broadcast', { event: 'spectator-answer' }, async (payload) => {
         console.log('📺 Received spectator answer');
         const answer = payload.payload.answer;
+        const participantId = payload.payload.participantId;
         
-        // Find the most recent spectator connection that's in the right state
+        // Match answer to the correct spectator connection
         if (state.spectatorConnections && state.spectatorConnections.length > 0) {
             const spectatorPC = state.spectatorConnections[state.spectatorConnections.length - 1];
             
-            if (spectatorPC.signalingState === 'have-local-offer') {
-                try {
-                    await spectatorPC.setRemoteDescription(new RTCSessionDescription(answer));
-                    console.log('✅ Spectator connection established');
-                } catch (error) {
-                    console.error('Error setting spectator answer:', error);
+            // Only process if this answer is for us
+            if (!participantId || participantId === state.participantId) {
+                if (spectatorPC.signalingState === 'have-local-offer') {
+                    try {
+                        await spectatorPC.setRemoteDescription(new RTCSessionDescription(answer));
+                        console.log('✅ Spectator connection established for participant:', state.participantId);
+                    } catch (error) {
+                        console.error('Error setting spectator answer:', error);
+                    }
+                } else {
+                    console.warn('Spectator PC not in correct state:', spectatorPC.signalingState);
                 }
             } else {
-                console.warn('Spectator PC not in correct state:', spectatorPC.signalingState);
+                console.log('Answer not for this participant');
             }
         } else {
             console.warn('No spectator connections available');
@@ -723,6 +729,9 @@ async function sendOfferToSpectator() {
     try {
         console.log('📹 Creating offer for spectator...');
         
+        // Generate unique participant ID
+        const participantId = state.participantId || (state.participantId = `p-${Math.random().toString(36).substr(2, 9)}`);
+        
         // Create a new peer connection for spectator
         const spectatorPC = new RTCPeerConnection(RTCConfig);
         
@@ -738,7 +747,10 @@ async function sendOfferToSpectator() {
                 state.channel.send({
                     type: 'broadcast',
                     event: 'participant-ice',
-                    payload: { candidate: event.candidate }
+                    payload: { 
+                        participantId: participantId,
+                        candidate: event.candidate 
+                    }
                 });
             }
         };
@@ -754,10 +766,13 @@ async function sendOfferToSpectator() {
         state.channel.send({
             type: 'broadcast',
             event: 'offer',
-            payload: { offer: spectatorPC.localDescription }
+            payload: { 
+                participantId: participantId,
+                offer: spectatorPC.localDescription 
+            }
         });
 
-        console.log('✅ Offer sent to spectator');
+        console.log('✅ Offer sent to spectator from participant:', participantId);
         
         // Store spectator PC (you might want to manage multiple spectators)
         if (!state.spectatorConnections) {
