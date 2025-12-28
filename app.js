@@ -171,45 +171,6 @@ function sanitizeRoomCode(code) {
         .slice(0, 4);
     }
 
-// Handle room join
-// Heartbeat mechanism to keep room alive
-let heartbeatInterval = null;
-
-function startHeartbeat() {
-    // Update room timestamp every 30 seconds
-    heartbeatInterval = setInterval(async () => {
-        if (state.roomCode) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('rooms')
-                    .update({
-                        updated_at: new Date().toISOString(),
-                        is_active: true
-                    })
-                    .eq('room_code', state.roomCode)
-                    .select();
-                if (error) {
-                    console.error('Heartbeat update failed:', error);
-                } else if (!data || data.length === 0) {
-                    console.error('Heartbeat: Room not found in database!', state.roomCode);
-                } else {
-                    console.log('Heartbeat sent for room', state.roomCode);
-                }
-                console.log('Heartbeat sent for room', state.roomCode);
-            } catch (err) {
-                console.error('Heartbeat failed:', err);
-            }
-        }
-    }, 10000); // Every 10 seconds
-}
-
-function stopHeartbeat() {
-    if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-    }
-}
-
 // Create or join a room - announce to lobby via broadcast
 async function createOrJoinRoom() {
     try {
@@ -286,7 +247,7 @@ async function handleJoinRoom() {
         // Now subscribe to signaling channel with correct initiator state
         
         setupRealtimeChannel();
-        startHeartbeat();
+        // Heartbeat removed - using broadcast instead
 
         showNotification('Connected to room. Waiting for other participant...', 'success');
     } catch (error) {
