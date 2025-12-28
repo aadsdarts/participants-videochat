@@ -213,18 +213,24 @@ function stopHeartbeat() {
 // Create or join a room in the database
 async function createOrJoinRoom() {
     try {
-        console.log('Creating/joining room:', state.roomCode);
+        console.log('=== CREATE OR JOIN ROOM ===');
+        console.log('Room code:', state.roomCode);
         
         // Use upsert to create or update room - this is bulletproof
         const now = new Date().toISOString();
+        console.log('Timestamp:', now);
+        
+        const roomData = {
+            room_code: state.roomCode,
+            created_at: now,
+            updated_at: now,
+            is_active: true
+        };
+        console.log('Attempting to upsert:', roomData);
+        
         const { data, error } = await supabaseClient
             .from('rooms')
-            .upsert({
-                room_code: state.roomCode,
-                created_at: now,
-                updated_at: now,
-                is_active: true
-            }, {
+            .upsert(roomData, {
                 onConflict: 'room_code',
                 ignoreDuplicates: false
             })
@@ -232,17 +238,35 @@ async function createOrJoinRoom() {
             .single();
 
         if (error) {
-            console.error('Room upsert failed:', error);
+            console.error('❌ Room upsert FAILED:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Error details:', JSON.stringify(error));
             // Don't throw - room might already exist, which is fine
             // Just determine if we're initiator based on channel presence
             state.isInitiator = false;
         } else {
-            console.log('Room upserted successfully:', data);
+            console.log('✅ Room upserted successfully!');
+            console.log('Returned data:', data);
             // First to upsert is initiator
             state.isInitiator = true;
         }
+        
+        // Verify the room is actually in the database
+        console.log('Verifying room in database...');
+        const { data: verifyData, error: verifyError } = await supabaseClient
+            .from('rooms')
+            .select('*')
+            .eq('room_code', state.roomCode)
+            .single();
+            
+        if (verifyError) {
+            console.error('❌ Room verification FAILED:', verifyError);
+        } else {
+            console.log('✅ Room verified in database:', verifyData);
+        }
     } catch (error) {
-        console.error('Error in createOrJoinRoom:', error);
+        console.error('❌ Exception in createOrJoinRoom:', error);
         // Don't throw - allow connection to proceed
         state.isInitiator = false;
     }
