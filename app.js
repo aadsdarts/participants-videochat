@@ -796,6 +796,13 @@ async function sendOfferToSpectator() {
         }
         state.spectatorConnections.push(spectatorPC);
         
+        // Ensure local video continues to display
+        // This fixes an issue where creating a new peer connection causes local video to disappear
+        if (localVideo.srcObject !== state.localStream) {
+            console.log('🔧 Re-attaching local video stream');
+            localVideo.srcObject = state.localStream;
+        }
+        
     } catch (error) {
         console.error('❌ Error sending offer to spectator:', error);
     }
