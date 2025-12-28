@@ -501,38 +501,48 @@ flushPendingIceCandidates();
         console.log('📺 Received spectator answer', payload.payload);
         const answer = payload.payload.answer;
         const participantId = payload.payload.participantId;
+        const spectatorToken = payload.payload.token;
         
         if (!state.spectatorConnections || state.spectatorConnections.length === 0) {
             console.warn('No spectator connections available');
             return;
         }
         
-        // Find the spectator connection for this participant
+        // Find the spectator connection by matching participantId (this participant's ID) with the token
         let spectatorConn = null;
         
-        if (participantId) {
-            // Match by participantId
+        // First, try to match by participantId and token
+        if (participantId && spectatorToken) {
             spectatorConn = state.spectatorConnections.find(conn => 
-                (conn.participantId === participantId) || (conn.participantId === state.participantId && participantId === state.participantId)
+                conn.participantId === participantId && conn.token === spectatorToken
             );
         }
         
-        // Fallback to the connection that's waiting for an answer
-        if (!spectatorConn) {
+        // Fallback 1: Match by participantId only (for this participant)
+        if (!spectatorConn && participantId === state.participantId) {
+            spectatorConn = state.spectatorConnections.find(conn => 
+                conn.participantId === state.participantId && 
+                conn.token === spectatorToken &&
+                conn.pc.signalingState === 'have-local-offer'
+            );
+        }
+        
+        // Fallback 2: Match by token and 'have-local-offer' state
+        if (!spectatorConn && spectatorToken) {
             spectatorConn = state.spectatorConnections.find(conn => {
                 const pc = conn.pc || conn;
-                return pc.signalingState === 'have-local-offer';
+                return conn.token === spectatorToken && pc.signalingState === 'have-local-offer';
             });
         }
         
         if (spectatorConn) {
             const spectatorPC = spectatorConn.pc || spectatorConn;
-            console.log('Processing answer for participant:', participantId, 'PC state:', spectatorPC.signalingState);
+            console.log('Processing answer - participantId:', participantId, 'myId:', state.participantId, 'token:', spectatorToken, 'PC state:', spectatorPC.signalingState);
             
             if (spectatorPC.signalingState === 'have-local-offer') {
                 try {
                     await spectatorPC.setRemoteDescription(new RTCSessionDescription(answer));
-                    console.log('✅ Spectator connection established');
+                    console.log('✅ Spectator connection established for token:', spectatorToken);
                 } catch (error) {
                     console.error('Error setting spectator answer:', error);
                 }
@@ -540,7 +550,7 @@ flushPendingIceCandidates();
                 console.warn('Spectator PC not in correct state:', spectatorPC.signalingState);
             }
         } else {
-            console.warn('Could not find matching spectator connection for answer');
+            console.warn('Could not find matching spectator connection. participantId:', participantId, 'myId:', state.participantId, 'token:', spectatorToken);
         }
     });
 
@@ -579,6 +589,7 @@ flushPendingIceCandidates();
     state.channel.on('broadcast', { event: 'spectator-ice' }, async (payload) => {
         const candidate = payload.payload.candidate;
         const participantId = payload.payload.participantId;
+        const spectatorToken = payload.payload.token;
         
         if (!candidate || !state.spectatorConnections || state.spectatorConnections.length === 0) {
             return;
@@ -587,25 +598,25 @@ flushPendingIceCandidates();
         // Find the right spectator connection for this ICE candidate
         let spectatorConn = null;
         
-        if (participantId) {
+        // Match by participantId and token
+        if (participantId && spectatorToken) {
             spectatorConn = state.spectatorConnections.find(conn => 
-                (conn.participantId === participantId) || (conn.participantId === state.participantId && participantId === state.participantId)
+                conn.participantId === participantId && conn.token === spectatorToken
             );
         }
         
-        // Fallback: try all connections that have remoteDescription set
-        if (!spectatorConn) {
-            spectatorConn = state.spectatorConnections.find(conn => {
-                const pc = conn.pc || conn;
-                return pc.remoteDescription !== null;
-            });
+        // Fallback: Match by token for this participant's connections
+        if (!spectatorConn && spectatorToken && participantId === state.participantId) {
+            spectatorConn = state.spectatorConnections.find(conn => 
+                conn.token === spectatorToken && conn.pc.remoteDescription !== null
+            );
         }
         
         if (spectatorConn) {
             const spectatorPC = spectatorConn.pc || spectatorConn;
             try {
                 await spectatorPC.addIceCandidate(new RTCIceCandidate(candidate));
-                console.log('✅ Added spectator ICE candidate');
+                console.log('✅ Added spectator ICE candidate for token:', spectatorToken);
             } catch (error) {
                 console.error('Error adding spectator ICE candidate:', error);
             }
