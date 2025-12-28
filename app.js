@@ -231,7 +231,9 @@ async function handleJoinRoom() {
         await createOrJoinRoom();
 
         // Now subscribe to signaling channel with correct initiator state
+        
         setupRealtimeChannel();
+        startHeartbeat();
 
         showNotification('Connected to room. Waiting for other participant...', 'success');
     } catch (error) {
@@ -763,6 +765,8 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
     }, 5000);
 }
+
+
 
 
 
